@@ -1,0 +1,292 @@
+using System.CommandLine;
+
+namespace SubTools;
+public static class UI
+{
+    private static readonly RootCommand root_command;
+
+    public static int ParseInvoke( string[] args, bool loop=true )
+    {
+        var parseResult = root_command.Parse(args);
+        //display options/help
+        //if (parseResult.Errors.Count == 0) root_command.Parse("--help").Invoke();
+        var exitCode = parseResult.Invoke();
+        
+        if( loop )
+        {
+            //add exit command, with no handlers!
+            root_command.Subcommands.Add( new Command("exit", "Exit Subtitles Tools.") );
+            //continue to run commands without exiting, until exit command
+            while (true)
+            {
+                Console.Write("> ");
+                string? line = Console.ReadLine();
+                if (line == null) break;// EOF
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (line.Equals("exit", StringComparison.OrdinalIgnoreCase))
+                    break;//basically exit
+
+                //args = CommandLineParser.SplitCommandLine(line).ToArray();//replace args
+                exitCode = root_command.Parse( line ).Invoke();//refill args and continue to invoke!
+            }
+        }
+
+        return exitCode;
+    }
+
+    static UI()
+    {
+        root_command = new("Subtitles Tools, supported formats(srt,vtt,ass,ssa\"v3&4\").");
+        var optionVerbose = new Option<bool>("--verbose", "-v") { Description = "Show more info.", Recursive=true };
+        var optionInputPath = new Option<string[]>("--input","-i"){ Description = "Input paths, Accepts files, wildcards and folders.", AllowMultipleArgumentsPerToken=true };
+        var optionOutputDir = new Option<string>("--output-dir", "-o") { Description = "Output Directory, If not set, input directory will be used, and overwrite existing files." };
+        root_command.Options.Add( optionVerbose );
+        root_command.Options.Add( optionInputPath );
+        root_command.Options.Add( optionOutputDir );
+        root_command.SetAction( parseResult => {
+            Config.Miscellaneous_Verbose = parseResult.GetValue(optionVerbose);
+            var input = parseResult.GetValue( optionInputPath );
+            if( (input != null) && input.Length > 0)
+            {
+                //default actions
+                Console.WriteLine($"Loading: {string.Join(" ", input)}");
+                FileLoader.Load( input );
+                Console.WriteLine("Breaking:");
+                Separator.Separate( Config.Separate_Enclosed, Config.Separate_Line_Breaks, Config.Regroup_Ssa_Dialogue_Styles );
+                Console.WriteLine("Regrouping:");
+                Restyler.Regroup( Config.Regroup_Ssa_Dialogue_Styles );
+                Console.WriteLine("Merging:");
+                Merger.Merge( 1, Config.Merge_Max_Gap, 0, false, false, false );
+                Merger.Merge( 2, Config.Merge_Max_Gap, 0, false, false, Config.Merge_Make_Dialogue );
+                Merger.Merge( 3, Config.Merge_Max_Gap, Config.Merge_Max_Chars, Config.Merge_Unpunctuated, Config.Merge_Strict_Test, Config.Merge_Make_Dialogue );
+                Console.WriteLine("Recalculating:");
+                Recalculator.Recalculate( Config.Recalculate_Mode, Config.Recalculate_Overlap, Config.Recalculate_Shrink, Config.Recalculate_All,
+                    Config.Recalculate_Chars_Per_Second, Config.Recalculate_Min_Duration, Config.Recalculate_Max_Duration, Config.Recalculate_Gap
+                );
+                //Console.WriteLine("Saving:");
+                //FileSaver.Save( parseResult.GetValue(optionOutputDir), Config.Save_Skip_Backup, Config.Save_Remove_Line_Breaks, Config.Save_Remove_Group_Definers );
+            }
+        });
+
+        /******************************************************************************************************/
+        /***FileLoader*****************************************************************************************/
+        /******************************************************************************************************/
+        var commandLoad = new Command("load", "Load subtitles files.");
+        var argumentInputPath = new Argument<string[]>("InputPaths"){ Description = "Input paths, Accepts files, wildcards and folders.", Arity = ArgumentArity.OneOrMore };
+        commandLoad.Arguments.Add(argumentInputPath);
+        commandLoad.SetAction( parseResult => {
+            Config.Miscellaneous_Verbose = parseResult.GetValue(optionVerbose);
+            FileLoader.Load( parseResult.GetValue(argumentInputPath) );
+        });
+        
+        root_command.Subcommands.Add(commandLoad);
+        /******************************************************************************************************/
+        /***Separator******************************************************************************************/
+        /******************************************************************************************************/
+        var commandSeparate = new Command("break", "Break/Separate subtitles entries.");
+        Option<bool> optionEnclosed = new("--enclosed", "-e") { Description = "separate text enclosed in brackets and parenthesis.", DefaultValueFactory = _ => Config.Separate_Enclosed };
+        Option<bool> optionLineBreaks = new("--line-breaks", "-b") { Description = "separate multi lined text.", DefaultValueFactory = _ => Config.Separate_Line_Breaks };
+        Option<string> optionSSADialogueStyles = new("--styles", "-s") { Description = "SSA style names that you want modified, use ',' to separate multiple style names.", DefaultValueFactory = _ => Config.Regroup_Ssa_Dialogue_Styles };
+
+        commandSeparate.Options.Add(optionEnclosed);
+        commandSeparate.Options.Add(optionLineBreaks);
+        commandSeparate.Options.Add(optionSSADialogueStyles);
+        root_command.Subcommands.Add(commandSeparate);
+
+        commandSeparate.SetAction(parseResult => {
+            Config.Miscellaneous_Verbose = parseResult.GetValue(optionVerbose);
+            Separator.Separate( parseResult.GetValue(optionEnclosed), parseResult.GetValue(optionLineBreaks), parseResult.GetValue(optionSSADialogueStyles)! );
+        });
+        /******************************************************************************************************/
+        /***Regroup*********************************************************************************************/
+        /******************************************************************************************************/
+        var commandRegroup = new Command("regroup", "Use ssa styles and styling list to regroup subtitles entries and add 'override styling' and 'dialogue tag' for subtitles entries.\nEntries tagged as dialog, will have their group definers removed from text lines.");
+        commandRegroup.Options.Add( optionSSADialogueStyles );
+        commandRegroup.SetAction(parseResult => {
+            Config.Miscellaneous_Verbose = parseResult.GetValue(optionVerbose);
+            Restyler.Regroup( parseResult.GetValue(optionSSADialogueStyles)! );
+        });
+
+        var argumentGKeys = new Argument<string>("Definers"){ Description = "Input styling list(s) definers: [start char][end char], even number of chars.", Arity=ArgumentArity.ExactlyOne };
+        argumentGKeys.Validators.Add(result => {
+            var gv = result.GetValue(argumentGKeys)!;
+            if( (gv.Length>=1) && (gv.Length % 2) != 0 ) result.AddError("Definers argument must be in pairs (even number of chars). example: ()[]<> ");
+        });
+        var argumentIsDialogue = new Argument<bool>("IsDialogue"){ Description = "is group tagged as dialog?", Arity=ArgumentArity.ExactlyOne };
+        var argumentOverrideStyling = new Argument<string>("OverrideStyling"){ Description = "group style override code.", Arity=ArgumentArity.ZeroOrOne, DefaultValueFactory = _ => "" };
+        
+        var commandStyleList = new Command("list"){ Description = "view styling list." };
+        commandStyleList.SetAction(parseResult => Restyler.ViewStyleGroup());
+
+        var commandStyleSet = new Command("set"){ Description = "add or update styling list by:\n\t1 - one or more character pair(s), that are used to identify the entries that belong to their group(s).\n\t2 - true/false, whether or not the identified entries are tagged as dialog.\n\t3 - \"override styling code \" - optional - added to the beggining of subtitle etries text.\nexample : restyle add () true {\\i1}\nexample : restyle push <>== false {\\an8}" };
+        commandStyleSet.Arguments.Add( argumentGKeys );
+        commandStyleSet.Arguments.Add( argumentIsDialogue );
+        commandStyleSet.Arguments.Add( argumentOverrideStyling );
+        commandStyleSet.SetAction(_ => Restyler.SetStyleGroup( _.GetValue(argumentGKeys)!, _.GetValue(argumentIsDialogue), _.GetValue(argumentOverrideStyling)! ));
+
+        var commandStyleRemove = new Command("delete") { Description = "remove from styling list." };
+        commandStyleRemove.Arguments.Add( argumentGKeys );
+        commandStyleRemove.SetAction(parseResult => Restyler.RemoveStyleGroup( parseResult.GetValue(argumentGKeys)! ));
+
+        commandRegroup.Subcommands.Add(commandStyleList);
+        commandRegroup.Subcommands.Add(commandStyleSet);
+        commandRegroup.Subcommands.Add(commandStyleRemove);
+        root_command.Subcommands.Add(commandRegroup);
+        /******************************************************************************************************/
+        /***Merger*********************************************************************************************/
+        /******************************************************************************************************/
+        var commandMerge = new Command("merge", "Merge subtitles entries,\nPerform all three merging operations, sametext->sametime->shortlines.");
+        var optionMaxGap = new Option<double>("--max-gap", "-g") { Description = "Maximum Gap between subtitle entries to be merged.", DefaultValueFactory = _ => Config.Merge_Max_Gap };
+        var optionMaxChars = new Option<int>("--max-chars", "-c") { Description = "Maximum number of characters of the merged entries.", DefaultValueFactory = _ => Config.Merge_Max_Chars };
+        var optionUnpunctuated = new Option<bool>("--unpunctuated", "-u") { Description = "Merge unpunctuated text.", DefaultValueFactory = _ => Config.Merge_Unpunctuated };
+        var optionStrictTest = new Option<bool>("--strict-test", "-s") { Description = "If set short lines won't merge unless the first sentence ends with Comma and the second's first char is not uppercase - with \"I and I'\" as an exception -, otherwise they will merge as long as the first sentence doesn't end with Period, Question Mark, Exclamation Mark, Semicolon, Ellipsis.", DefaultValueFactory = _ => Config.Merge_Strict_Test };
+        var optionMakeDialogue = new Option<bool>("--make-dialogue", "-d") { Description = "Add \"-\" at the start of each line merged.", DefaultValueFactory = _ => Config.Merge_Make_Dialogue };
+        commandMerge.Options.Add(optionMaxGap);
+        commandMerge.Options.Add(optionMaxChars);
+        commandMerge.Options.Add(optionUnpunctuated);
+        commandMerge.Options.Add(optionStrictTest);
+        commandMerge.Options.Add(optionMakeDialogue);
+        commandMerge.SetAction(_ => {
+            Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
+            Merger.Merge( 1, _.GetValue(optionMaxGap), 0, false, false, false );
+            Merger.Merge( 2, _.GetValue(optionMaxGap), 0, false, false, _.GetValue(optionMakeDialogue) );
+            Merger.Merge( 3, _.GetValue(optionMaxGap), _.GetValue(optionMaxChars), _.GetValue(optionUnpunctuated), _.GetValue(optionStrictTest), _.GetValue(optionMakeDialogue) );
+        });
+
+        var commandMergeSameText = new Command("sametext"){ Description = "Merge subtitle entries with the same text." };
+        commandMergeSameText.Options.Add( optionMaxGap );
+        commandMergeSameText.SetAction(_ => {
+            Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
+            Merger.Merge( 1, _.GetValue(optionMaxGap), 0, false, false, false );
+        });
+        commandMerge.Subcommands.Add( commandMergeSameText );
+
+        var commandMergeSameTime = new Command("sametime"){ Description = "Merge subtitle entries with the same display time with a line break,\naffected by groupings." };
+        commandMergeSameTime.Options.Add( optionMaxGap );
+        commandMergeSameTime.Options.Add(optionMakeDialogue);
+        commandMergeSameTime.SetAction(_ => {
+            Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
+            Merger.Merge( 2, _.GetValue(optionMaxGap), 0, false, false, _.GetValue(optionMakeDialogue) );
+        });
+        commandMerge.Subcommands.Add( commandMergeSameTime );
+
+        var commandMergeShortLines = new Command("shortlines"){ Description = "Merge short subtitle text lines for entries marked as dialog,\naffected by dialogue tag and groupings." };
+        commandMergeShortLines.Options.Add( optionMaxGap );
+        commandMergeShortLines.Options.Add(optionMaxChars);
+        commandMergeShortLines.Options.Add(optionUnpunctuated);
+        commandMergeShortLines.Options.Add(optionStrictTest);
+        commandMergeShortLines.Options.Add(optionMakeDialogue);
+        commandMergeShortLines.SetAction(_ => {
+            Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
+            Merger.Merge( 3, _.GetValue(optionMaxGap), _.GetValue(optionMaxChars), _.GetValue(optionUnpunctuated), _.GetValue(optionStrictTest), _.GetValue(optionMakeDialogue) );
+        });
+        commandMerge.Subcommands.Add( commandMergeShortLines );
+
+        root_command.Subcommands.Add( commandMerge );
+
+        /******************************************************************************************************/
+        /***Recalculator***************************************************************************************/
+        /******************************************************************************************************/
+        var commandRecalculate = new Command("recalculate", "Recalculate subtitles entries display durations, based on character count, only for entries tagged as dialog, unless --All option is used,\naffected by groupings.");
+        var optionMode = new Option<Config.RecalculateModeType>("--mode", "-m") { Description = "Modes: Extend (no overlap), Shift (push later subtitles).", DefaultValueFactory = _ => Config.Recalculate_Mode };
+        var optionOverlap = new Option<bool>("--overlap", "-o") { Description = "allow overlap in Extend mode.", DefaultValueFactory = _ => Config.Recalculate_Overlap };
+        var optionShrink = new Option<bool>("--shrink", "-s") { Description = "if display durration is larger than needed, it will be reduced.", DefaultValueFactory = _ => Config.Recalculate_Shrink };
+        var optionAll = new Option<bool>("--all", "-a") { Description = "recalculate durration of all entries, otherwise only dialogue ones.", DefaultValueFactory = _ => Config.Recalculate_All };
+        var optionCharsPerSecond = new Option<double>("--chars-per-second", "-c") { Description = "Characters per second.", DefaultValueFactory = _ => Config.Recalculate_Chars_Per_Second };
+        var optionMinDuration = new Option<double>("--min-duration", "-M") { Description = "Minimum display time duration in seconds.", DefaultValueFactory = _ => Config.Recalculate_Min_Duration };
+        var optionMaxDuration = new Option<double>("--max-duration", "-X") { Description = "Maximum display time duration in seconds.", DefaultValueFactory = _ => Config.Recalculate_Max_Duration };
+        var optionGap = new Option<double>("--gap", "-G") { Description = "Gap between dialogues in seconds.", DefaultValueFactory = _ => Config.Recalculate_Gap };
+
+        commandRecalculate.Options.Add(optionMode);
+        commandRecalculate.Options.Add(optionOverlap);
+        commandRecalculate.Options.Add(optionShrink);
+        commandRecalculate.Options.Add(optionAll);
+        commandRecalculate.Options.Add(optionCharsPerSecond);
+        commandRecalculate.Options.Add(optionMinDuration);
+        commandRecalculate.Options.Add(optionMaxDuration);
+        commandRecalculate.Options.Add(optionGap);
+
+        root_command.Subcommands.Add(commandRecalculate);
+
+        commandRecalculate.SetAction(parseResult => {
+            Config.Miscellaneous_Verbose = parseResult.GetValue(optionVerbose);
+            Recalculator.Recalculate(
+                parseResult.GetValue(optionMode),
+                parseResult.GetValue(optionOverlap),
+                parseResult.GetValue(optionShrink),
+                parseResult.GetValue(optionAll),
+                parseResult.GetValue(optionCharsPerSecond),
+                parseResult.GetValue(optionMinDuration),
+                parseResult.GetValue(optionMaxDuration),
+                parseResult.GetValue(optionGap)
+            );
+        });
+        /******************************************************************************************************/
+        /***FileSaver******************************************************************************************/
+        /******************************************************************************************************/
+        var commandSave = new Command("save", "Save subtitles files, overwrite existing files.");
+        Option<bool> optionRemoveLineBreaks = new("--remove-line-breaks", "-N") { Description = "only for entries tagged as dialog, remove line breaks from texts lines.", DefaultValueFactory = _ => Config.Save_Remove_Line_Breaks};
+        Option<bool> optionRemoveGroupDefiners = new("--remove-group-definers", "-G") { Description = "only for grouped entries tagged as dialog, remove group definers.", DefaultValueFactory = _ => Config.Save_Remove_Group_Definers};
+        Option<bool> optionSkipBackup = new("--skip-backup", "-R") { Description = "skip automatic backup creation, otherwise backup your files before editing them unless a backup already exist.", DefaultValueFactory = _ => Config.Save_Skip_Backup};
+        commandSave.Options.Add(optionOutputDir);
+        commandSave.Options.Add(optionRemoveLineBreaks);
+        commandSave.Options.Add(optionRemoveGroupDefiners);
+        commandSave.Options.Add(optionSkipBackup);
+        commandSave.SetAction(_ => {
+            Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
+            FileSaver.Save( _.GetValue(optionOutputDir), _.GetValue(optionSkipBackup), _.GetValue(optionRemoveLineBreaks), _.GetValue(optionRemoveGroupDefiners) );
+        });
+        root_command.Subcommands.Add(commandSave);
+        /******************************************************************************************************/
+        /***Backup/Restore*************************************************************************************/
+        /******************************************************************************************************/
+        var commandBackup = new Command("backup", $"Create backups for subtitle files ({BackupRestore.ArchiveFileName}).");
+        commandBackup.Options.Add(optionOutputDir);
+        commandBackup.SetAction(parseResult => {
+            Config.Miscellaneous_Verbose = parseResult.GetValue(optionVerbose);
+            BackupRestore.Backup( parseResult.GetValue(optionOutputDir) );
+        });
+        root_command.Subcommands.Add(commandBackup);
+        var commandRestore = new Command("restore", $"Restore subtitle files from backups ({BackupRestore.ArchiveFileName}).");
+        commandRestore.Options.Add(optionOutputDir);
+        commandRestore.SetAction(parseResult => {
+            Config.Miscellaneous_Verbose = parseResult.GetValue(optionVerbose);
+            BackupRestore.Restore( parseResult.GetValue(optionOutputDir) );
+        });
+        root_command.Subcommands.Add(commandRestore);
+
+        /******************************************************************************************************/
+        /***config*********************************************************************************************/
+        /******************************************************************************************************/
+        //configure
+        var commandConfig = new Command("config", "Configure default values.");
+        //key
+        var argumentConfigKey = new Argument<string>("key"){ Description = "Configuration key." };
+        //value
+        var argumentConfigValue = new Argument<string>("value"){ Description = "Configuration value." };
+        //set key value
+        var commandConfigSet = new Command("set", "Set a configuration value.");
+        commandConfigSet.Arguments.Add(argumentConfigKey);
+        commandConfigSet.Arguments.Add(argumentConfigValue);
+        commandConfigSet.SetAction( _ => Config.SetValue(_.GetValue(argumentConfigKey)!, _.GetValue(argumentConfigValue)!));
+        commandConfig.Subcommands.Add(commandConfigSet);
+        //get value
+        var commandConfigGet = new Command("get", "Get a configuration value.");
+        commandConfigGet.Arguments.Add(argumentConfigKey);
+        commandConfigGet.SetAction( _ => Console.WriteLine(Config.GetValue(_.GetValue(argumentConfigKey)!)) );
+        commandConfig.Subcommands.Add(commandConfigGet);
+        //list all
+        var commandConfigList = new Command("list", "list configurations keys, types and values.");
+        commandConfigList.SetAction( _ => Config.PrintTable());
+        commandConfig.Subcommands.Add(commandConfigList);
+        //save
+        var commandConfigSave = new Command("save", $"save configurations file to {Config.FilePath}.");
+        commandConfigSave.SetAction( _ => Config.Save());
+        commandConfig.Subcommands.Add(commandConfigSave);
+        
+        root_command.Subcommands.Add(commandConfig);
+        /******************************************************************************************************/
+
+        
+    }
+}
