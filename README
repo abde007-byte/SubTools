@@ -1,0 +1,94 @@
+# SubTools
+
+SubTools is a lightweight .NET command-line utility for working with subtitle files in SRT, VTT, ASS, and SSA formats. It helps you clean up broken subtitle timing, split or regroup dialogue, merge short lines, and save processed output safely with automatic backups.
+
+## Features
+
+- Load subtitle files from files or folders
+- Separate subtitle entries by bracketed text, line breaks, and dialogue styles
+- Regroup SSA/ASS dialogue using styling rules and override tags
+- Merge similar or short subtitle entries to improve readability
+- Recalculate subtitle timing based on character count and duration settings
+- Save output to a chosen directory with backup support
+- Restore files from a generated backup archive
+
+## Supported formats
+
+- .srt
+- .vtt
+- .ass
+- .ssa v3&4
+
+## Requirements
+
+- .NET 10 SDK
+- Windows, macOS, or Linux
+
+## Publish
+
+```bash
+dotnet publish -c Release
+```
+
+## Run
+
+From the project directory:
+
+```bash
+dotnet run -- --input "input.srt"
+```
+
+or add SubTools.exe from "bin\Release\net10.0" to the PATH variable to run it from any command-line window without typing the full path:
+
+```bash
+subtools -h
+```
+
+
+## Configure
+
+edit config and regroup default parameter values according to your needs:
+
+```bash
+subtools
+>config list
+>config set Regroup_SSA_Dialogue_Styles Default,DefaultItalic
+>regroup list
+>regroup delete ()
+>regroup set () True {\i1}
+>config save
+```
+
+## Example workflow
+
+```bash
+subtools
+>load *.ass *.srt
+>break
+>regroup
+>merge --max-gap 0.5
+>recalculate --mode Extend --chars-per-second 15 --min-duration 1 --max-duration 8
+>save
+```
+
+or:
+
+```bash
+subtools -i *
+>save
+```
+
+This runs the default subtitle workflow: load, break, regroup, merge, and recalculate, will need to followup with "save" command in order save the changes to the files.
+
+## Notes
+
+- The app writes backups automatically unless backup is disabled.
+- Review the CLI help for all available options:
+
+```bash
+subtools --help
+```
+
+## License
+
+This project is provided as-is for subtitle editing and cleanup workflows.
