@@ -78,11 +78,53 @@ public static class Restyler
     }
 
     
-    public static void ViewStyleGroup()
+    public static void PrintTableStyleGroup()
     {
-        if( StyleList.Count == 0 ) ConsoleHelper.Error("Empty style list!");
-        else foreach( var gv in StyleList )
-            Console.WriteLine( $"   => {gv.ToString()}" );
+        if( StyleList.Count == 0 ){
+            ConsoleHelper.Error("Empty style list!");
+            return;
+        }
+    
+        string definerHeader = " Key : ";
+        string isDialogueHeader = " IsDialogue :";
+        string styleOverrideCodeHeader = " StyleOverrideCode :";
+        Console.WriteLine(string.Format("{0} | {1} | {2}",definerHeader,isDialogueHeader,styleOverrideCodeHeader));
+        //row initial size
+        int widthDefiner = definerHeader.Length;
+        int widthIsDialogue = isDialogueHeader.Length;
+        Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
+        foreach( var gv in StyleList )
+        {
+            Console.WriteLine(string.Format("{0} | {1,-" + widthIsDialogue + "} | {2}", PadRightForDisplay(gv.Key.ToString(),widthDefiner), gv.Value.IsDialogue, gv.Value.StyleOverrideCode));
+        }
+        Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
+    }
+    private static int GetDisplayWidth(string text)
+    {
+        int width = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            int c = rune.Value;
+            bool isWide =
+                c == 0x3000 ||
+                (c >= 0x1100 && c <= 0x115F) ||
+                (c >= 0x2329 && c <= 0x232A) ||
+                (c >= 0x2E80 && c <= 0xA4CF) ||
+                (c >= 0xAC00 && c <= 0xD7A3) ||
+                (c >= 0xF900 && c <= 0xFAFF) ||
+                (c >= 0xFE10 && c <= 0xFE19) ||
+                (c >= 0xFE30 && c <= 0xFE6F) ||
+                (c >= 0xFF00 && c <= 0xFF60) ||
+                (c >= 0xFFE0 && c <= 0xFFE6);
+
+            width += isWide ? 2 : 1;
+        }
+        return width;
+    }
+    private static string PadRightForDisplay(string text, int width)
+    {
+        int pad = width - GetDisplayWidth(text);
+        return text + new string(' ', Math.Max(0, pad));
     }
 
     public static void SetStyleGroup( string keys, bool isDialogue, string overrideStyling, bool showMsg=true )

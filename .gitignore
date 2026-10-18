@@ -7,3 +7,4 @@ obj/
 *.db
 *.pdb
 *.7z
+SubTools.csproj

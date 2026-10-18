@@ -116,7 +116,7 @@ public static class UI
         var argumentOverrideStyling = new Argument<string>("OverrideStyling"){ Description = "group style override code.", Arity=ArgumentArity.ZeroOrOne, DefaultValueFactory = _ => "" };
         
         var commandStyleList = new Command("list"){ Description = "view styling list." };
-        commandStyleList.SetAction(parseResult => Restyler.ViewStyleGroup());
+        commandStyleList.SetAction(parseResult => Restyler.PrintTableStyleGroup());
 
         var commandStyleSet = new Command("set"){ Description = "add or update styling list by:\n\t1 - one or more character pair(s), that are used to identify the entries that belong to their group(s).\n\t2 - true/false, whether or not the identified entries are tagged as dialog.\n\t3 - \"override styling code \" - optional - added to the beggining of subtitle etries text.\nexample : restyle add () true {\\i1}\nexample : restyle push <>== false {\\an8}" };
         commandStyleSet.Arguments.Add( argumentGKeys );
