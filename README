@@ -87,7 +87,226 @@ This runs the default subtitle workflow: load, break, regroup, merge, and recalc
 
 ```bash
 subtools --help
+subtools [Command] --help
 ```
+
+## Command reference
+### Global options
+
+These options are available on the root command.
+
+- `-v, --verbose` — Show more info, can be used before any subcommand "Global option".
+- `-i, --input` — Input paths. Accepts files, wildcards, and folders. Can be specified multiple times.
+- `-o, --output-dir` — Output directory. If not set, the input directory is used and existing files are overwritten.
+
+When the app is run with `--input` and no explicit subcommand, it performs the default workflow: load → break → regroup → merge → recalculate.
+
+
+### `load`
+
+Load subtitle files into memory.
+
+Usage:
+
+```bash
+subtools load <InputPaths...>
+```
+
+Arguments:
+
+- `InputPaths` — One or more input paths. Accepts files, wildcards, and folders.
+
+
+
+### `break`
+
+Break or separate subtitle entries.
+
+Usage:
+
+```bash
+subtools break [options]
+```
+
+Options:
+
+- `-e, --enclosed` — Separate text enclosed in brackets and parenthesis.
+- `-b, --line-breaks` — Separate multi-line text.
+- `-s, --styles` — SSA style names to modify. Use commas to separate multiple style names.
+
+
+
+### `regroup`
+
+Use SSA/ASS styles and the styling list to regroup subtitle entries and add override styling and dialogue tags.
+
+Usage:
+
+```bash
+subtools regroup [options]
+subtools regroup list
+subtools regroup set <Definers> <IsDialogue> [OverrideStyling]
+subtools regroup delete <Definers>
+```
+
+Options:
+
+- `-s, --styles` — SSA style names to use for regrouping. Use commas to separate multiple style names.
+
+
+
+Subcommands:
+
+- `list` — View the current styling list.
+- `set` — Add or update a styling rule.
+  - Arguments:
+    - `Definers` — Styling list definers, such as `[start char][end char]` pairs. Must be an even number of characters, for example `()[]<>`.
+    - `IsDialogue` — Boolean flag indicating whether the matched group should be treated as dialogue.
+    - `OverrideStyling` — Optional override style code added at the beginning of subtitle text. Defaults to an empty string.
+- `delete` — Remove a styling rule.
+  - Arguments:
+    - `Definers` — The styling definers to remove.
+
+### `merge`
+
+Merge subtitle entries. This command performs the full merge flow: same text → same time → short lines.
+
+Usage:
+
+```bash
+subtools merge [options]
+subtools merge sametext [options]
+subtools merge sametime [options]
+subtools merge shortlines [options]
+```
+
+Options:
+
+- `-g, --max-gap` — Maximum gap in seconds between subtitle entries to merge.
+- `-c, --max-chars` — Maximum character count for merged subtitle entries.
+- `-u, --unpunctuated` — Merge unpunctuated text.
+- `-s, --strict-test` — Use stricter short-line merge rules.
+- `-d, --make-dialogue` — Add `-` at the start of each merged line.
+
+
+
+Subcommands:
+
+- `sametext` — Merge subtitle entries with the same text.
+- `sametime` — Merge subtitle entries with the same display time using a line break, affected by grouping.
+- `shortlines` — Merge short subtitle text lines for dialogue entries, affected by dialogue tags and grouping.
+
+### `recalculate`
+
+Recalculate subtitle display durations based on character count, usually for dialogue lines unless `--all` is used.
+
+Usage:
+
+```bash
+subtools recalculate [options]
+```
+
+Options:
+
+- `-m, --mode` — Recalculation mode. Supported values: `Extend` (no overlap) and `Shift` (push later subtitles).
+- `-o, --overlap` — Allow overlap when using `Extend` mode.
+- `-s, --shrink` — Shrink timing if the display duration is larger than needed.
+- `-a, --all` — Recalculate all entries instead of only dialogue entries.
+- `-c, --chars-per-second` — Characters per second.
+- `-M, --min-duration` — Minimum display duration in seconds.
+- `-X, --max-duration` — Maximum display duration in seconds.
+- `-G, --gap` — Gap between dialogues in seconds.
+
+
+
+### `save`
+
+Save subtitle files, overwriting existing output files when needed.
+
+Usage:
+
+```bash
+subtools save [options]
+```
+
+Options:
+
+- `-o, --output-dir` — Output directory. If not set, the input directory is used.
+- `-N, --remove-line-breaks` — For dialogue entries, remove line breaks from text lines.
+- `-G, --remove-group-definers` — For grouped dialogue entries, remove group definers.
+- `-R, --skip-backup` — Skip automatic backup creation.
+
+
+
+### `backup`
+
+Create a backup archive for subtitle files.
+
+Usage:
+
+```bash
+subtools backup [options]
+```
+
+Options:
+
+- `-o, --output-dir` — Output directory for the backup archive.
+
+
+
+### `restore`
+
+Restore subtitle files from the backup archive.
+
+Usage:
+
+```bash
+subtools restore [options]
+```
+
+Options:
+
+- `-o, --output-dir` — Directory used to restore files from backup.
+
+
+
+### `config`
+
+Configure default values used by the application.
+
+Usage:
+
+```bash
+subtools config set <key> <value>
+subtools config get <key>
+subtools config list
+subtools config save
+```
+
+Subcommands:
+
+- `set` — Set a configuration value.
+  - Arguments:
+    - `key` — Configuration key name.
+    - `value` — Configuration value to store.
+- `get` — Get a configuration value.
+  - Arguments:
+    - `key` — Configuration key name to fetch.
+- `list` — List configuration keys, types, and values.
+- `save` — Save the configuration file to the configured config path.
+
+
+### `exit`
+
+Exit the interactive CLI loop.
+
+Usage:
+
+```bash
+subtools
+> exit
+```
+
 
 ## License
 
