@@ -169,7 +169,7 @@ public static class Config
         {
             Restyler.SetStyleGroup( "[]「」『』【】〔〕［］", false, "{\\an8}", false);
             Restyler.SetStyleGroup( "()==《》〈〉（）｛｝«»“”‘’", true, "{\\i1}", false);
-            Restyler.SetStyleGroup( "♪♪♫♫", true, "{\\an8\\i1}", false);
+            Restyler.SetStyleGroup( "♪♪♫♫", false, "{\\an8\\i1}", false);
             //Restyler.SetStyleGroup( "()[]==《》〈〉「」『』【】〔〕（）［］｛｝«»“”‘’♪♪♫♫", false, "{\\an8\\i1}", false);
         }
     }
