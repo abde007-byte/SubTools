@@ -27,10 +27,10 @@ public static class BackupRestore
                 //add subFile.FilePath as fileName to the archive
                 archive.CreateEntryFromFile( subFile.FilePath!, fileName);
             }
-            ConsoleHelper.Success($"Backup created: {zipPath}. Files processed: {FileLoader.SubFiles.Count}");
+            ConsoleHelper.Success($"{zipPath}. Files processed: {FileLoader.SubFiles.Count}", "Backup created: ");
         }
         else
-            ConsoleHelper.Verbose($"Backup already exists: {zipPath}");
+            ConsoleHelper.Verbose($"{zipPath}", "Backup already exists: ");
 
         //catch { ConsoleHelper.Error($"Failed to create backup for {zipPath} : $($_.Exception.Message)"; }
     }
@@ -55,7 +55,7 @@ public static class BackupRestore
         if( File.Exists(zipPath) )
         {
             ZipFile.ExtractToDirectory(zipPath, outputDir!, overwriteFiles: true);
-            ConsoleHelper.Success($"Restore Completed.");
+            ConsoleHelper.Success("", "Restore Completed.");
         }else
             ConsoleHelper.Error($"Backup file not found: {zipPath}");
     }

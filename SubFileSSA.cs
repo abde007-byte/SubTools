@@ -55,7 +55,7 @@ public partial class SubFileSSA : SubFile
         //necessitate SortByStartTime
         SortByStartTime();
     }
-    public override void Save( string filePath, bool removeLineBreaks, bool removeGroupDefiners )
+    public override void Save( string filePath, bool removeGroupDefiners )
     {
         using StreamWriter outputFile = new(filePath);
         //add pre [Event] data
@@ -65,7 +65,7 @@ public partial class SubFileSSA : SubFile
         for( int i=0; i<_dialogues.Count; i++)
         {
             var dialogue = _dialogues[i];
-            string textLines = Restyler.RestyleTextLines( dialogue._textLines, dialogue._group, removeLineBreaks, removeGroupDefiners );
+            string textLines = Restyler.RestyleTextLines( dialogue._textLines, dialogue._group, removeGroupDefiners );
             outputFile.WriteLine( "Dialogue: Marked="
                 + dialogue._extra_int.ToString() + ","
                 + FormatSSATime(dialogue._start) + ","

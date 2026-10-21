@@ -2,7 +2,7 @@ namespace SubTools;
 
 public static class FileSaver
 {
-    public static void Save( string? outputDir, bool skipBackup, bool removeLineBreaks, bool removeGroupDefiners )
+    public static void Save( string? outputDir, bool skipBackup, bool removeGroupDefiners )
     {
         if( FileLoader.SubFiles.Count == 0)
         {
@@ -35,10 +35,10 @@ public static class FileSaver
             //}
             
             //save
-            ConsoleHelper.Verbose($"Saving: {outputFilePath}");
+            ConsoleHelper.Verbose($"{outputFilePath}", "Saving: ");
             try
             {
-                subFile.Save( outputFilePath, removeLineBreaks, removeGroupDefiners );
+                subFile.Save( outputFilePath, removeGroupDefiners );
                 totalFiles++;
             }
             catch (Exception err)
@@ -46,7 +46,7 @@ public static class FileSaver
                 ConsoleHelper.Error(err.Message);
             }
         }
-        ConsoleHelper.Success($"Completed. Files Saved: {totalFiles}");
+        ConsoleHelper.Success($"Files Saved: {totalFiles}", "Completed. ");
     }
 
 }

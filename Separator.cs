@@ -1,6 +1,66 @@
 namespace SubTools;
 public static class Separator
 {
+    //separate text enclosed in brackets and parenthesis, separate/split text by line breaks.
+    //if entry is white space, keep it
+    public static void Separate( SubFile sf, bool Enclosed, bool LineBreaks )
+    {
+        var newDialogues = new List<DialogueData>( sf._dialogues.Count );
+        
+        for( int i=0; i<sf._dialogues.Count; i++)
+        {
+            var dialogue = sf._dialogues[i];
+            if( Restyler.IsSSADialogueStyle( dialogue._style ) )
+            {
+                List<string> separatedTextLines;
+                if( Enclosed ){
+                    //separate enclosed text
+                    separatedTextLines = Separator.SeparateEnclosedText( dialogue._textLines );
+                }
+                else
+                {
+                    separatedTextLines = [dialogue._textLines];
+                }
+                if( LineBreaks ){
+                    //separate multi lined text
+                    separatedTextLines = Separator.SeparateMultiLinedText( separatedTextLines );
+                }
+
+                //add unmodified textLines, in case TextLines is empty space separatedTextLines will be empty
+                if ( separatedTextLines.Count <= 1 )
+                {
+                    //included in SSADialogueStyles
+                    dialogue._group = SubFile.DefaultGroupValueForNoneDialogue;//*
+                    newDialogues.Add( dialogue );
+                }
+                else
+                {
+                    foreach( string textLine in separatedTextLines )
+                    {
+                        newDialogues.Add( new DialogueData(
+                            SubFile.DefaultGroupValueForNoneDialogue,//* //in restyle/regroup this will be set!
+                            dialogue._start,
+                            dialogue._end,
+                            textLine,
+                            dialogue._style,
+                            dialogue._extra_string,
+                            dialogue._extra_int
+                        ));
+                    }
+                }
+            }
+            else
+            {
+                //not included in SSADialogueStyles
+                dialogue._group = SubFile.DefaultGroupValueForNoneDialogue;
+                newDialogues.Add( dialogue );
+            }
+        }
+
+        sf._dialogues = newDialogues;
+        sf.DialoguesFinalize();
+    }
+
     public static List<string> SeparateMultiLinedText( List<string> input)
     {
         //separate multi lined
@@ -95,15 +155,17 @@ public static class Separator
             SubFile subFile = FileLoader.SubFiles[i];
             var DialoguesCountDelta = subFile.DialoguesCount;
             //Separate
-            ConsoleHelper.Verbose($"Separating: {subFile.FilePath}");
-            subFile.Separate( Enclosed, LineBreaks );
+            ConsoleHelper.Verbose($"{subFile.FilePath}", "Separating: ");
+            Separate( subFile, Enclosed, LineBreaks );
             DialoguesCountDelta = subFile.DialoguesCount - DialoguesCountDelta;
-            
+
+            ConsoleHelper.Verbose($"\t\tdialogues separated: {DialoguesCountDelta}" ,"");
+
             totalFiles++;
             totalDialoguesSeparated += DialoguesCountDelta;
         }
 
-        ConsoleHelper.Success($"Completed. Files processed: {totalFiles} | Total entries separated: {totalDialoguesSeparated}");
+        ConsoleHelper.Success($"Files processed: {totalFiles} | Total entries separated: {totalDialoguesSeparated}" ,"Completed. ");
         
     }
 }

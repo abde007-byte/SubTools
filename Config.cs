@@ -15,27 +15,29 @@ public static class Config
     /*************************************************************************/
     internal static bool Miscellaneous_Verbose;
     /*************************************************************************/
-    internal static bool Separate_Enclosed = false;
+    internal static bool Separate_Enclosed = true;
     internal static bool Separate_Line_Breaks = false;
     /*************************************************************************/
     internal static string Regroup_Ssa_Dialogue_Styles = SubFile.DefaultSSAStyle;
     /*************************************************************************/
-    internal static double Merge_Max_Gap = 0.0;
-    internal static int Merge_Max_Chars = 80;
+    internal static double Merge_Max_Gap = 0.8;
+    internal static int Merge_Max_Chars = 100;
     internal static bool Merge_Unpunctuated = false;
     internal static bool Merge_Make_Dialogue = false;
     internal static bool Merge_Strict_Test = false;
+    internal static bool Merge_Remove_Line_Breaks = true;
     /*************************************************************************/
     internal static RecalculateModeType Recalculate_Mode = RecalculateModeType.Extend;
     internal static bool Recalculate_Overlap = false;
     internal static bool Recalculate_Shrink = false;
     internal static bool Recalculate_All = false;
     internal static double Recalculate_Chars_Per_Second = 12.0;
-    internal static double Recalculate_Min_Duration = 1.0;
+    internal static double Recalculate_Min_Duration = 1.5;
     internal static double Recalculate_Max_Duration = 6.0;
     internal static double Recalculate_Gap = 0.0;
     /*************************************************************************/
-    internal static bool Save_Remove_Line_Breaks = false;
+    internal static bool Collusion_Reverse = true;
+    /*************************************************************************/
     internal static bool Save_Remove_Group_Definers = false;
     internal static bool Save_Skip_Backup = false;
     /*************************************************************************/
@@ -55,6 +57,7 @@ public static class Config
         "Merge:Unpunctuated",
         "Merge:Make Dialogue",
         "Merge:Strict Test",
+        "Merge:Remove Line Breaks",
 
         "Recalculate:Mode",
         "Recalculate:Overlap",
@@ -65,7 +68,8 @@ public static class Config
         "Recalculate:Max Duration",
         "Recalculate:Gap",
 
-        "Save:Remove Line Breaks",
+        "Collusion:Reverse",
+
         "Save:Skip Backup",
         "Save:Remove Group Definers"
     ];
@@ -133,7 +137,7 @@ public static class Config
             if (File.Exists(FilePath))
             {
                 Builder.AddJsonFile( FilePath, optional: true, reloadOnChange: false);
-                ConsoleHelper.Verbose($"Loading Configurations File!, {FilePath}");
+                ConsoleHelper.Verbose($"{FilePath}", "Loading Configurations File: ");
             }
 
             var config = Builder.Build();
@@ -194,7 +198,7 @@ public static class Config
         var json = JsonSerializer.Serialize(root, new JsonSerializerOptions{ WriteIndented = true });
         File.WriteAllText( FilePath, json);
 
-        ConsoleHelper.Success($"Config file saved! {FilePath}");
+        ConsoleHelper.Success($"{FilePath}", "Config file saved! ");
     }
 
     private static void AddValueToTree(Dictionary<string, object?> root, string key, object? value)

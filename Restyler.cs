@@ -1,16 +1,35 @@
+using System.Drawing;
+
 namespace SubTools;
 public static class Restyler
 {
-    public static string RemoveLineBreaks( string input )
+    //Use styling list to add 'override styling' and 'dialogue tag' for subtitles entries.
+    public static int Regroup( SubFile sf, string ssaStyles )
     {
-        char[] inputChars = input.ToCharArray();
-        int topMinus = inputChars.Length - 1;
-        for( int i=0; i<topMinus; i++ )
-            if( (inputChars[i] == '\n') && (inputChars[i+1] != '-') )
-                inputChars[i] = ' ';//replace with space
-        return new string(inputChars);
+        int dialoguesRestyled = 0;
+        for( int i=0; i<sf._dialogues.Count; i++)
+        {
+            var dialogue = sf._dialogues[i];
+            var newGroup = SubFile.DefaultGroupValueForNoneDialogue;
+
+            if( TryGetSSADialogueStyleIndex( dialogue._style, out int index ))
+            {
+                newGroup = GetStyleGroup( dialogue._textLines );
+                newGroup = GroupSSADialogueStyleUpgrade( newGroup, index );
+            }
+            
+            //update only if group is changed
+            if( newGroup != dialogue._group )
+            {
+                dialogue._group = newGroup;
+                sf._dialogues[i] = dialogue;
+                dialoguesRestyled++;
+            }
+        }
+        return dialoguesRestyled;
     }
-    public static string RestyleTextLines( string textLines, int upGroup, bool removeLineBreaks, bool removeGroupDefiners )
+
+    internal static string RestyleTextLines( string textLines, int upGroup, bool removeGroupDefiners )
     {
         GroupParams GP;
         if( upGroup >= 0 )//must not be -1
@@ -28,13 +47,10 @@ public static class Restyler
             textLines = textLines[1..^1]; //remove first and last chars, AKA group definers
             
         textLines = GP.StyleOverrideCode + textLines;//add styleOverrideCode
-        
-        if( removeLineBreaks && GP.IsDialogue )
-            textLines = RemoveLineBreaks( textLines );////remove line-breaks
 
         return textLines;
     }
-    public static int GetStyleGroup( string TextLines )
+    internal static int GetStyleGroup( string TextLines )
     {
         int group = SubFile.DefaultGroupValueForDialogue;
         string textLines = TextLines;
@@ -50,108 +66,7 @@ public static class Restyler
         return group;
     }
 
-    public static void Regroup( string ssaStyles )
-    {
-        if( FileLoader.SubFiles.Count == 0)
-        {
-            ConsoleHelper.Warning("need to load files!");
-            return;
-        }
-
-        PrepareSSADialogueStyles( ssaStyles );
-        PrepareStyleListExtras();
-
-        int totalFiles = 0;
-        int totalDialoguesStyled = 0;
-        for( int i=0; i<FileLoader.SubFiles.Count; i++ )
-        {
-            SubFile subFile = FileLoader.SubFiles[i];
-            //Style
-            ConsoleHelper.Verbose($"Regrouping: {subFile.FilePath}");
-            totalDialoguesStyled += subFile.Regroup( ssaStyles );
-            
-            totalFiles++;
-        }
-
-        ConsoleHelper.Success($"Completed. Files processed: {totalFiles} | Total entries grouped: {totalDialoguesStyled}");
-        
-    }
-
-    
-    public static void PrintTableStyleGroup()
-    {
-        if( StyleList.Count == 0 ){
-            ConsoleHelper.Error("Empty style list!");
-            return;
-        }
-    
-        string definerHeader = " Key : ";
-        string isDialogueHeader = " IsDialogue :";
-        string styleOverrideCodeHeader = " StyleOverrideCode :";
-        Console.WriteLine(string.Format("{0} | {1} | {2}",definerHeader,isDialogueHeader,styleOverrideCodeHeader));
-        //row initial size
-        int widthDefiner = definerHeader.Length;
-        int widthIsDialogue = isDialogueHeader.Length;
-        Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
-        foreach( var gv in StyleList )
-        {
-            Console.WriteLine(string.Format("{0} | {1,-" + widthIsDialogue + "} | {2}", PadRightForDisplay(gv.Key.ToString(),widthDefiner), gv.Value.IsDialogue, gv.Value.StyleOverrideCode));
-        }
-        Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
-    }
-    private static int GetDisplayWidth(string text)
-    {
-        int width = 0;
-        foreach (var rune in text.EnumerateRunes())
-        {
-            int c = rune.Value;
-            bool isWide =
-                c == 0x3000 ||
-                (c >= 0x1100 && c <= 0x115F) ||
-                (c >= 0x2329 && c <= 0x232A) ||
-                (c >= 0x2E80 && c <= 0xA4CF) ||
-                (c >= 0xAC00 && c <= 0xD7A3) ||
-                (c >= 0xF900 && c <= 0xFAFF) ||
-                (c >= 0xFE10 && c <= 0xFE19) ||
-                (c >= 0xFE30 && c <= 0xFE6F) ||
-                (c >= 0xFF00 && c <= 0xFF60) ||
-                (c >= 0xFFE0 && c <= 0xFFE6);
-
-            width += isWide ? 2 : 1;
-        }
-        return width;
-    }
-    private static string PadRightForDisplay(string text, int width)
-    {
-        int pad = width - GetDisplayWidth(text);
-        return text + new string(' ', Math.Max(0, pad));
-    }
-
-    public static void SetStyleGroup( string keys, bool isDialogue, string overrideStyling, bool showMsg=true )
-    {
-        foreach( var gv in CreateGroups( keys, isDialogue, overrideStyling ) )
-        {
-            string _txt = StyleList.ContainsKey( gv.Key )? "UPDATED: ":"INSERTED: ";
-            StyleList[gv.Key] = gv.Value;
-            if( showMsg ) ConsoleHelper.Success( $"    {_txt} => {gv.ToString()}" );
-        }
-    }
-    public static void RemoveStyleGroup( string keys )
-    {
-        if( StyleList.Count == 0 ) ConsoleHelper.Error("Empty style list!");
-        else
-        {
-            foreach( var key in CreateGroupsKeys(keys))
-            if ( StyleList.ContainsKey( key ) )
-            {
-                ConsoleHelper.Success( $"    REMOVED: => {StyleList[key].ToString()}" );
-                Console.WriteLine( StyleList.Remove( key) );
-            }else
-                 ConsoleHelper.Error( $"Key not found{{{key}}}" );
-        }
-    }
-
-    public static readonly Dictionary<GroupKeys, GroupParams> StyleList = [];
+    internal static readonly Dictionary<GroupKeys, GroupParams> StyleList = [];
     public struct GroupKeys(char cS, char cE)
     {
         public char CS=cS, CE=cE;
@@ -311,5 +226,111 @@ public static class Restyler
     internal static GroupParams GetGroupParams( int downGroup )
     {
         return GroupsParams[ downGroup ];
+    }
+
+
+
+    private static int GetDisplayWidth(string text)
+    {
+        int width = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            int c = rune.Value;
+            bool isWide =
+                c == 0x3000 ||
+                (c >= 0x1100 && c <= 0x115F) ||
+                (c >= 0x2329 && c <= 0x232A) ||
+                (c >= 0x2E80 && c <= 0xA4CF) ||
+                (c >= 0xAC00 && c <= 0xD7A3) ||
+                (c >= 0xF900 && c <= 0xFAFF) ||
+                (c >= 0xFE10 && c <= 0xFE19) ||
+                (c >= 0xFE30 && c <= 0xFE6F) ||
+                (c >= 0xFF00 && c <= 0xFF60) ||
+                (c >= 0xFFE0 && c <= 0xFFE6);
+
+            width += isWide ? 2 : 1;
+        }
+        return width;
+    }
+    private static string PadRightForDisplay(string text, int width)
+    {
+        int pad = width - GetDisplayWidth(text);
+        return text + new string(' ', Math.Max(0, pad));
+    }
+    
+    public static void PrintTableStyleGroup()
+    {
+        if( StyleList.Count == 0 ){
+            ConsoleHelper.Error("Empty style list!");
+            return;
+        }
+    
+        string definerHeader = " Key : ";
+        string isDialogueHeader = " IsDialogue :";
+        string styleOverrideCodeHeader = " StyleOverrideCode :";
+        Console.WriteLine(string.Format("{0} | {1} | {2}",definerHeader,isDialogueHeader,styleOverrideCodeHeader));
+        //row initial size
+        int widthDefiner = definerHeader.Length;
+        int widthIsDialogue = isDialogueHeader.Length;
+        Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
+        foreach( var gv in StyleList )
+        {
+            Console.WriteLine(string.Format("{0} | {1,-" + widthIsDialogue + "} | {2}", PadRightForDisplay(gv.Key.ToString(),widthDefiner), gv.Value.IsDialogue, gv.Value.StyleOverrideCode));
+        }
+        Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
+    }
+
+    public static void SetStyleGroup( string keys, bool isDialogue, string overrideStyling, bool showMsg=true )
+    {
+        foreach( var gv in CreateGroups( keys, isDialogue, overrideStyling ) )
+        {
+            string _txt = StyleList.ContainsKey( gv.Key )? "UPDATED: ":"INSERTED: ";
+            StyleList[gv.Key] = gv.Value;
+            if( showMsg ) ConsoleHelper.Success( $"=> {gv.ToString()}", $"\t{_txt}\t " );
+        }
+    }
+    public static void RemoveStyleGroup( string keys )
+    {
+        if( StyleList.Count == 0 ) ConsoleHelper.Error("Empty style list!");
+        else
+        {
+            foreach( var key in CreateGroupsKeys(keys))
+            if ( StyleList.ContainsKey( key ) )
+            {
+                ConsoleHelper.Success( $"=> {StyleList[key].ToString()}", $"\tREMOVED: \t " );
+                Console.WriteLine( StyleList.Remove( key) );
+            }else
+                 ConsoleHelper.Error( $"Key not found{{{key}}}" );
+        }
+    }
+
+    public static void Regroup( string ssaStyles )
+    {
+        if( FileLoader.SubFiles.Count == 0)
+        {
+            ConsoleHelper.Warning("need to load files!");
+            return;
+        }
+
+        PrepareSSADialogueStyles( ssaStyles );
+        PrepareStyleListExtras();
+
+        int totalFiles = 0;
+        int totalDialoguesGrouped = 0;
+        for( int i=0; i<FileLoader.SubFiles.Count; i++ )
+        {
+            SubFile subFile = FileLoader.SubFiles[i];
+            //Style
+            ConsoleHelper.Verbose($"{subFile.FilePath}", "Regrouping: ");
+            int DialoguesGrouped = Regroup( subFile, ssaStyles );
+
+            ConsoleHelper.Verbose($"\t\tdialogues grouped: {DialoguesGrouped}", "");
+            
+            totalDialoguesGrouped += DialoguesGrouped;
+            totalFiles++;
+        }
+
+        ConsoleHelper.Success($"Files processed: {totalFiles} | Total entries grouped: {totalDialoguesGrouped}" ,"Completed. ");
+        
     }
 }

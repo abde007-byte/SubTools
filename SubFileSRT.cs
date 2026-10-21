@@ -68,7 +68,7 @@ public partial class SubFileSRT : SubFile
         //necessitate SortByStartTime
         SortByStartTime();
     }
-    public override void Save( string filePath, bool removeLineBreaks, bool removeGroupDefiners )
+    public override void Save( string filePath, bool removeGroupDefiners )
     {
         using StreamWriter outputFile = new(filePath);
         for( int i=0; i<_dialogues.Count; i++)
@@ -77,7 +77,7 @@ public partial class SubFileSRT : SubFile
             outputFile.WriteLine( (i+1).ToString() );
             outputFile.WriteLine( FormatSRTTime(dialogue._start) + " --> " + FormatSRTTime(dialogue._end) + dialogue._extra_string );
             //output TextLines, line by line
-            string textLines = Restyler.RestyleTextLines( dialogue._textLines, dialogue._group, removeLineBreaks, removeGroupDefiners );
+            string textLines = Restyler.RestyleTextLines( dialogue._textLines, dialogue._group, removeGroupDefiners );
             foreach( string textLine in textLines.Split('\n') )
                 outputFile.WriteLine( textLine );
             //extra empty line, is how srt separate entries

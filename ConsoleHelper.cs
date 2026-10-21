@@ -1,41 +1,36 @@
 namespace SubTools;
 public static class ConsoleHelper
 {
-    public static void WritelineError(string message)
+    public static void Writeline( string message, string? header=default, ConsoleColor consoleColor=default)
     {
-        Console.ForegroundColor = ConsoleColor.Green;
+        if( ! string.IsNullOrWhiteSpace(header))
+        {
+            Console.ForegroundColor = consoleColor;
+            Console.Write(header);
+            Console.ResetColor();
+        }
         Console.WriteLine(message);
-        Console.ResetColor();
     }
 
-    public static void Success(string message)
+    public static void Success( string message, string? header=default )
     {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine(message);
-        Console.ResetColor();
+        Writeline( message, header??"SUCCESS: ", ConsoleColor.Green);
     }
 
-    public static void Error(string message)
+    public static void Error( string message, string? header=default )
     {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"ERROR: {message}");
-        Console.ResetColor();
+        Writeline( message, header??"ERROR: ", ConsoleColor.Red);
     }
 
-    public static void Warning(string message)
+    public static void Warning( string message, string? header=default )
     {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"WARNING: {message}");
-        Console.ResetColor();
+        Writeline( message, header??"WARNING: ", ConsoleColor.Yellow);
     }
 
-    public static void Verbose(string message)
+    public static void Verbose( string message, string? header=default )
     {
         if (!Config.Miscellaneous_Verbose) return;
-
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine($"VERBOSE: {message}");
-        Console.ResetColor();
+        Writeline( message, header??"VERBOSE: ", ConsoleColor.DarkGray);
     }
 
     static ConsoleHelper()

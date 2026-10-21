@@ -97,7 +97,7 @@ public class SubFileASS : SubFile
         while( (line = inputFile.ReadLine()) is not null )
             PostEvents.Add( line );
     }
-    public override void Save( string filePath, bool removeLineBreaks, bool removeGroupDefiners )
+    public override void Save( string filePath, bool removeGroupDefiners )
     {
         //var GroupsGroupParams = Restyler.GetGroupsGroupParams( true );//entries with group 0 are dialogue entries by default
         using StreamWriter outputFile = new(filePath);
@@ -108,7 +108,7 @@ public class SubFileASS : SubFile
         for( int i=0; i<_dialogues.Count; i++)
         {
             var dialogue = _dialogues[i];
-            string textLines = Restyler.RestyleTextLines( dialogue._textLines, dialogue._group, removeLineBreaks, removeGroupDefiners );
+            string textLines = Restyler.RestyleTextLines( dialogue._textLines, dialogue._group, removeGroupDefiners );
             outputFile.WriteLine( "Dialogue: "
                 + dialogue._extra_int.ToString() + ","
                 + SubFileSSA.FormatSSATime(dialogue._start) + ","

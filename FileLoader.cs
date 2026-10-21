@@ -74,7 +74,7 @@ public static class FileLoader
             try
             {
                 //load
-                ConsoleHelper.Verbose($"Loading: {inputFilePath}");
+                ConsoleHelper.Verbose($"{inputFilePath}", "Loading: ");
                 if ( Load( inputFilePath ) )
                     totalFiles++;
             }
@@ -83,7 +83,7 @@ public static class FileLoader
                 ConsoleHelper.Error(err.Message);
             }
         }
-        ConsoleHelper.Success($"Completed. Files Loaded: {totalFiles}");
+        ConsoleHelper.Success($"Files Loaded: {totalFiles}", "Completed. ");
     }
 
 }
