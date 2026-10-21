@@ -75,7 +75,7 @@ public class SubFileASS : SubFile
                                 int.Parse(match.Groups["end_tss"].Value),
                                 int.Parse(match.Groups["end_tsms"].Value)
                             ),
-                            SubFileSSA.SSATextRegex().Replace( match.Groups["text"].Value, "\n" ),
+                            match.Groups["text"].Value,
                             match.Groups["style"].Value,
                             match.Groups["extra"].Value,
                             int.Parse( match.Groups["layer"].Value )

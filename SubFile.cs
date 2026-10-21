@@ -2,16 +2,27 @@ using System.Text;
 using System.Text.RegularExpressions;
 namespace SubTools;
 
+public partial class LineBreakSpace
+{
+    [GeneratedRegex(@"\s*\\[Nn]\s*")] private static partial Regex regex();
+    internal static string Replace( string text )
+    {
+        return regex().Replace( text, "\n" );
+    }
+}
+
 public struct DialogueData ( int group, int start, int end, string textLines, string style, string extraString, int extraInteger )
 {
     public int _group=group, _start=start, _end=end;
-    public string _textLines=textLines, _style=style, _extra_string=extraString;
+    public string _textLines=LineBreakSpace.Replace( textLines );
+    public string _style=style, _extra_string=extraString;
     public int _extra_int=extraInteger;
     public static readonly DialogueData Empty = new( SubFile.DefaultGroupValueForNoneDialogue, 0, 0, "", "", "", 0 );
     public void InsertLine(string line)
     {
-        if( _textLines.Length != 0 ) _textLines += '\n';
-        _textLines += line;
+        if( _textLines.Length != 0 )
+            _textLines += '\n';
+        _textLines += LineBreakSpace.Replace( line );
     }
 }
 

@@ -39,7 +39,7 @@ public partial class SubFileSSA : SubFile
                         int.Parse(match.Groups["end_tss"].Value),
                         int.Parse(match.Groups["end_tsms"].Value)
                     ),
-                    SSATextRegex().Replace( match.Groups["text"].Value, "\n" ),
+                    match.Groups["text"].Value,
                     match.Groups["style"].Value,
                     match.Groups["extra"].Value,
                     int.Parse( match.Groups["layer"].Value )
@@ -82,5 +82,4 @@ public partial class SubFileSSA : SubFile
     }
     [GeneratedRegex(@"^Dialogue:\s*(?:Marked=)?(?<layer>-?\d+),(?<start_tsn>-)?(?:(?<start_tsh>\d+):)?(?:(?<start_tsm>\d+):)?(?<start_tss>\d+).(?<start_tsms>\d+),(?<end_tsn>-)?(?:(?<end_tsh>\d+):)?(?:(?<end_tsm>\d+):)?(?<end_tss>\d+).(?<end_tsms>\d+),(?<style>[^,]*),(?<extra>[^,]*,\d+,\d+,\d+,[^,]*),(?<text>.*)$", RegexOptions.Compiled | RegexOptions.Singleline )]
     internal static partial Regex SSADialogueRegex();
-    [GeneratedRegex(@"\s*\\(?:N|n)\s*")] internal static partial Regex SSATextRegex();
 }

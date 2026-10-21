@@ -124,46 +124,59 @@ public static class Merger
             var downG = Restyler.GroupSSADialogueStyleDowngrade( g );
             var groupParams = Restyler.GetGroupParams( downG );
             var indicesList = DialoguesIndices[g];
-            if ( groupParams.IsDialogue )
-            //all these belong to the same group
-            for ( int x = 0; x < indicesList.Count - 1; x++ )
+            if ( groupParams.IsDialogue)
             {
-                int i = indicesList[x];//get Dialogues index
-                if( ! toRemove[i] )
+                //all these belong to the same group
+                for ( int x = 0; x < indicesList.Count - 1; x++ )
                 {
-                    var aDialogue = sf._dialogues[i];
-                    bool aChanged = removeLineBreaks;
-                    if( removeLineBreaks)
-                        aDialogue._textLines = RemoveLineBreaks( aDialogue._textLines );
-                        
-                    for ( int y = x+1; y < indicesList.Count; y++ )
+                    int i = indicesList[x];//get Dialogues index
+                    if( ! toRemove[i] )
                     {
-                        int j = indicesList[y];
-                        if( ! toRemove[j] )
-                        {
-                            var bDialogue = sf._dialogues[j];
-                            if( ! IsSimilarTimes( maxGap, aDialogue._end, bDialogue._start ) )//tests 'A' end time vs 'B' start time
-                                break;//break from 'j' loop
+                        var aDialogue = sf._dialogues[i];
+                        bool aChanged = removeLineBreaks;
+                        if( removeLineBreaks)
+                            aDialogue._textLines = RemoveLineBreaks( aDialogue._textLines );
                             
-                            if( removeLineBreaks)
-                                bDialogue._textLines = RemoveLineBreaks( bDialogue._textLines );
-
-                            if( MergeShortLines( aDialogue._textLines, bDialogue._textLines, downG, maxCharacters, unpunctuated, strictTest, makeDialogue, out string mergedTextLines, out bool aEndCharCanContinue ) )
+                        for ( int y = x+1; y < indicesList.Count; y++ )
+                        {
+                            int j = indicesList[y];
+                            if( ! toRemove[j] )
                             {
-                                aDialogue._end = PickLongestRuntime( aDialogue._end, bDialogue._end );
-                                aDialogue._textLines = mergedTextLines;
-                                aChanged = true;
-                                toRemove[j] = true;
-                                dialoguesMerged++;
+                                var bDialogue = sf._dialogues[j];
+                                if( ! IsSimilarTimes( maxGap, aDialogue._end, bDialogue._start ) )//tests 'A' end time vs 'B' start time
+                                    break;//break from 'j' loop
+                                
+                                if( removeLineBreaks)
+                                    bDialogue._textLines = RemoveLineBreaks( bDialogue._textLines );
+
+                                if( MergeShortLines( aDialogue._textLines, bDialogue._textLines, downG, maxCharacters, unpunctuated, strictTest, makeDialogue, out string mergedTextLines, out bool aEndCharCanContinue ) )
+                                {
+                                    aDialogue._end = PickLongestRuntime( aDialogue._end, bDialogue._end );
+                                    aDialogue._textLines = mergedTextLines;
+                                    aChanged = true;
+                                    toRemove[j] = true;
+                                    dialoguesMerged++;
+                                }
+                                //if text A doesn't end with a comma and unpunctuated text is not allowed, no need to continue.
+                                if( ! aEndCharCanContinue && ! unpunctuated )
+                                    break;
                             }
-                            //if text A doesn't end with a comma and unpunctuated text is not allowed, no need to continue.
-                            if( ! aEndCharCanContinue && ! unpunctuated )
-                                break;
                         }
+                        //apply update of dialogue 'a' to List
+                        if( aChanged )
+                            sf._dialogues[i] = aDialogue;
                     }
-                    //apply update of dialogue 'a' to List
-                    if( aChanged )
+                }
+                //proccess last dialogue
+                if(removeLineBreaks && indicesList.Count > 0)
+                {
+                    int i = indicesList[^1];//get Dialogues index
+                    if( ! toRemove[i] )
+                    {
+                        var aDialogue = sf._dialogues[i];
+                        aDialogue._textLines = RemoveLineBreaks( aDialogue._textLines );
                         sf._dialogues[i] = aDialogue;
+                    }
                 }
             }
         }
