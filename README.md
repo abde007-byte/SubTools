@@ -243,6 +243,7 @@ subtools collusion-fix [options]
 | Option | Description |
 | --- | --- |
 | `-r, --reverse` | When set, subtitles are shifted to make way for new ones. |
+| `-t, --top-styles` | SSA style names of styles that are positioned at the top of the screen, use ',' to separate multiple style names. |
 
 ### `save`
 

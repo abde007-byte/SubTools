@@ -230,12 +230,14 @@ public static class UI
         /******************************************************************************************************/
         var commandCollusionFix = new Command("collusion-fix", "Reform dialogues in a way that emulates reverse collusion, only for entries tagged as dialog, affected by groupings.");
         var optionReverse = new Option<bool>("--reverse", "-r") { Description = "when set, subtitles are shifted to make way for new ones.", DefaultValueFactory = _ => Config.Collusion_Reverse };
+        var optionTopStyles = new Option<string>("--top-styles", "-t") { Description = "SSA style names of styles that are positioned at the top of the screen, use ',' to separate multiple style names.", DefaultValueFactory = _ => Config.Collusion_Top_Styles };
         commandCollusionFix.Options.Add( optionReverse );
+        commandCollusionFix.Options.Add( optionTopStyles );
         root_command.Subcommands.Add(commandCollusionFix);
 
         commandCollusionFix.SetAction(_ => {
             Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
-            CollusionFixer.CollusionFix( _.GetValue( optionReverse ));
+            CollusionFixer.CollusionFix( _.GetValue( optionReverse ), _.GetValue( optionTopStyles )??"" );
         });
 
         /******************************************************************************************************/

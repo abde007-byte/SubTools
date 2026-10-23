@@ -18,7 +18,7 @@ public static class Config
     internal static bool Separate_Enclosed = true;
     internal static bool Separate_Line_Breaks = false;
     /*************************************************************************/
-    internal static string Regroup_Ssa_Dialogue_Styles = SubFile.DefaultSSAStyle;
+    internal static string Regroup_Ssa_Dialogue_Styles = "Default,Italics,Top,TopItalics";//SubFile.DefaultSSAStyle;
     /*************************************************************************/
     internal static double Merge_Max_Gap = 0.8;
     internal static int Merge_Max_Chars = 100;
@@ -37,6 +37,7 @@ public static class Config
     internal static double Recalculate_Gap = 0.0;
     /*************************************************************************/
     internal static bool Collusion_Reverse = true;
+    internal static string Collusion_Top_Styles = "Top,TopItalics";
     /*************************************************************************/
     internal static bool Save_Remove_Group_Definers = false;
     internal static bool Save_Skip_Backup = false;
@@ -69,6 +70,7 @@ public static class Config
         "Recalculate:Gap",
 
         "Collusion:Reverse",
+        "Collusion:Top Styles",
 
         "Save:Skip Backup",
         "Save:Remove Group Definers"

@@ -3,11 +3,13 @@ public static class CollusionFixer
 {
     
     //collusion fixer: reform dialogues in a way that emulates reverse collusion.
-    public static int CollusionFix( SubFile sf, bool reverse )
+    public static int CollusionFix( SubFile sf, bool reverse, string topStyles )
     {
         int collusions = 0;
         var newDialogues = new List<DialogueData>( sf._dialogues.Count );
         var DialoguesIndices = SubFile.GetDialoguesIndicesInGroups( sf._dialogues );
+
+        HashSet<string> topStylesHash = new( topStyles.Split(',') );
 
         for ( int g = 0; g < DialoguesIndices.Length; g++ )
         {
@@ -16,6 +18,17 @@ public static class CollusionFixer
             var indicesList = DialoguesIndices[g];
             if ( groupParams.IsDialogue )
             {
+                //check if this group's style is in top positioned styles
+                string gStyle = "";
+                if( indicesList.Count > 0)
+                    gStyle = sf._dialogues[ indicesList[0] ]._style;
+                if( gStyle == "" )
+                    gStyle = SubFile.DefaultSSAStyle;
+                bool flipLinePotitions = ! topStylesHash.Contains( gStyle );
+                //xor reverse
+                flipLinePotitions ^= reverse;
+
+                //lopp through indices list
                 int x = 0;
                 while ( x < indicesList.Count )
                 {
@@ -97,8 +110,8 @@ public static class CollusionFixer
                             else
                             {
                                 var ordered = active.Select(d => d._textLines);
-                                // if later dialogue should appear before earlier
-                                if ( ! reverse ) ordered = ordered.Reverse(); 
+                                // if later dialogue should appear on top of earlier dialogue
+                                if ( flipLinePotitions ) ordered = ordered.Reverse();
                                 //overlap segment: merge all active dialogues textLines
                                 string mergedText = string.Join("\n", ordered );
                                 
@@ -132,7 +145,7 @@ public static class CollusionFixer
         return collusions;
     }
 
-    public static void CollusionFix( bool reverse )
+    public static void CollusionFix( bool reverse, string topStyles )
     {
         if( FileLoader.SubFiles.Count == 0)
         {
@@ -147,7 +160,7 @@ public static class CollusionFixer
             SubFile subFile = FileLoader.SubFiles[i];
             //CollusionFix
             ConsoleHelper.Verbose($"{subFile.FilePath}", "Collusion fixing: ");
-            var collusions = CollusionFix( subFile, reverse );
+            var collusions = CollusionFix( subFile, reverse, topStyles );
             
             ConsoleHelper.Verbose($"\t\tcollusions detected: {collusions}", "");
             totalFiles++;
