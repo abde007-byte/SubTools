@@ -25,7 +25,7 @@ public partial class SubFileSRT : SubFile
                 }
                 else
                 {
-                    newDialogue.InsertLine( line );//trim option! - DO NOT TRIM -
+                    newDialogue.InsertLine( LineBreakSpace.Replace( line ) );
                 }
             }
             //lines that follow after a match are dialogue text-lines,

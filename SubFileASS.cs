@@ -75,7 +75,7 @@ public class SubFileASS : SubFile
                                 int.Parse(match.Groups["end_tss"].Value),
                                 int.Parse(match.Groups["end_tsms"].Value)
                             ),
-                            match.Groups["text"].Value,
+                            LineBreakSpace.Replace( match.Groups["text"].Value ),
                             match.Groups["style"].Value,
                             match.Groups["extra"].Value,
                             int.Parse( match.Groups["layer"].Value )

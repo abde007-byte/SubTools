@@ -244,6 +244,8 @@ subtools collusion-fix [options]
 | --- | --- |
 | `-r, --reverse` | When set, subtitles are shifted to make way for new ones. |
 | `-t, --top-styles` | SSA style names of styles that are positioned at the top of the screen, use ',' to separate multiple style names. |
+| `-s, --scale-down` | add steps of scale-down percentage to the earliest of the overlapping dialogues, for example a value of 10 will scale the fist line by 100%, the second by 90%, the third by 80%, etc. |
+| `-c, --line-size` | apply forced line breaks, otherwise automatic line breaks will change the way subs are displayed when scaled-down. |
 
 ### `save`
 

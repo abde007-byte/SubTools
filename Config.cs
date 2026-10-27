@@ -38,6 +38,8 @@ public static class Config
     /*************************************************************************/
     internal static bool Collusion_Reverse = true;
     internal static string Collusion_Top_Styles = "Top,TopItalics";
+    internal static int Collusion_Scale_Down = 10;
+    internal static int Collusion_Line_Size = 100;
     /*************************************************************************/
     internal static bool Save_Remove_Group_Definers = false;
     internal static bool Save_Skip_Backup = false;

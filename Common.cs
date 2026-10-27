@@ -1,4 +1,7 @@
+using System.Text.RegularExpressions;
+
 namespace SubTools;
+
 public static class Common
 {
     public static int GetMilliseconds( bool Sign, int Hour, int Minute, int Second, int Millisecond ){
@@ -88,5 +91,14 @@ public static class Common
         
         //only true if original outputDir is used
         return false;
+    }
+}
+
+public partial class LineBreakSpace
+{
+    [GeneratedRegex(@"\s*\\[Nn]\s*")] private static partial Regex regex();
+    internal static string Replace( string text )
+    {
+        return regex().Replace( text, "\n" );
     }
 }
