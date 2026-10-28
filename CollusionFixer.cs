@@ -10,7 +10,7 @@ public static class CollusionFixer
     }
     
     //collusion fixer: reform dialogues in a way that emulates reverse collusion.
-    public static int CollusionFix( SubFile sf, bool reverse, string topStyles, int scaleDownEffects, int lineSize )
+    public static int CollusionFix( SubFile sf, bool reverse, string topStyles, string topGroups, int scaleDownEffects, int lineSize )
     {
         int collusions = 0;
         var newDialogues = new List<DialogueData>( sf._dialogues.Count );
@@ -33,9 +33,11 @@ public static class CollusionFixer
                     gStyle = sf._dialogues[ indicesList[0] ]._style;
                 if( gStyle == "" )
                     gStyle = SubFile.DefaultSSAStyle;
-                bool flipLinePotitions = ! topStylesHash.Contains( gStyle );
+                bool flipLinePositions = ! topStylesHash.Contains( gStyle );
+                //check if this group is in top positioned groups
+                flipLinePositions &= ! Restyler.TestGroupID( downG, topGroups);
                 //xor reverse
-                flipLinePotitions ^= reverse;
+                flipLinePositions ^= reverse;
 
                 //lopp through indices list
                 int x = 0;
@@ -131,98 +133,71 @@ public static class CollusionFixer
                                 continue;
                             
                             var mainDialogue = active[activeLastIndex];
-                            /*if (activeLastIndex == 0)
-                            {
-                                string textLines = mainDialogue._textLines;
+                            int previousDialogueHighestIndex = 0;
+                            var ordered = active.Select( (d, index) => {
                                 if( addEffects)
                                 {
-                                    var dialogueIndex = clusterDialoguesHighestIndex[mainDialogue._id];
-                                    if( dialogueIndex > 0 )
+                                    var dialogueIndex = activeLastIndex - index;
+                                    var dialogueHighestIndex = clusterDialoguesHighestIndex[d._id];
+                                    if( dialogueIndex > dialogueHighestIndex )
                                     {
-                                        int scalePercent = Math.Max(0, 100 - ( dialogueIndex * scaleDownEffects ) );
-                                        textLines = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}{textLines}";
+                                            clusterDialoguesHighestIndex[d._id] = dialogueIndex;
+                                            dialogueHighestIndex = dialogueIndex;
                                     }
-                                }
-                                
-                                //add single
-                                newDialogues.Add(new DialogueData(
-                                    aDialogue._group,
-                                    start,
-                                    end,
-                                    textLines,
-                                    aDialogue._style,
-                                    mainDialogue._extra_string,
-                                    mainDialogue._extra_int
-                                ));
-                            }
-                            else
-                            {*/
-                                int previousDialogueHighestIndex = 0;
-                                var ordered = active.Select( (d, index) => {
-                                    if( addEffects)
+                                    //calculate scale; latest entry scale = 100%
+                                    int scalePercent = Math.Max(0, 100 - ( dialogueHighestIndex * scaleDownEffects ) );
+                                    string result = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}{d._textLines}";
+
+                                    //add previous empty lines
+                                    for( int emptyIndex = dialogueHighestIndex + 1; emptyIndex < previousDialogueHighestIndex; emptyIndex++ )
                                     {
-                                        var dialogueIndex = activeLastIndex - index;
-                                        var dialogueHighestIndex = clusterDialoguesHighestIndex[d._id];
-                                        if( dialogueIndex > dialogueHighestIndex )
-                                        {
-                                             clusterDialoguesHighestIndex[d._id] = dialogueIndex;
-                                             dialogueHighestIndex = dialogueIndex;
-                                        }
-                                        //calculate scale; latest entry scale = 100%
-                                        int scalePercent = Math.Max(0, 100 - ( dialogueHighestIndex * scaleDownEffects ) );
-                                        string result = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}{d._textLines}";
-
-                                        //add previous empty lines
-                                        for( int emptyIndex = dialogueHighestIndex + 1; emptyIndex < previousDialogueHighestIndex; emptyIndex++ )
-                                        {
-                                            scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
-                                            string emptyLine = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}\u200B";
-                                            if ( flipLinePotitions )
-                                                result += "\n" + emptyLine;
-                                            else
-                                                result = emptyLine + "\n" + result;
-                                        }
-
-                                        previousDialogueHighestIndex = dialogueHighestIndex;
-
-                                        return result;
-                                    }
-                                    else
-                                    {
-                                        return d._textLines;
-                                    }
-                                    
-                                });
-
-                                // if later dialogue should appear on top of earlier dialogue
-                                if ( flipLinePotitions ) ordered = ordered.Reverse();
-                                //overlap segment: merge all active dialogues textLines
-                                string mergedText = string.Join("\n", ordered );
-                                
-                                //add next empty lines
-                                if( addEffects && previousDialogueHighestIndex > 0 )
-                                {
-                                    for( int emptyIndex = previousDialogueHighestIndex - 1; emptyIndex >= 0; emptyIndex-- )
-                                    {
-                                        var scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
+                                        scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
                                         string emptyLine = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}\u200B";
-                                        if( flipLinePotitions )
-                                            mergedText = emptyLine + "\n" + mergedText ;
+                                        if ( flipLinePositions )
+                                            result += "\n" + emptyLine;
                                         else
-                                            mergedText += "\n" + emptyLine ;
+                                            result = emptyLine + "\n" + result;
                                     }
+
+                                    previousDialogueHighestIndex = dialogueHighestIndex;
+
+                                    return result;
+                                }
+                                else
+                                {
+                                    return d._textLines;
                                 }
                                 
-                                newDialogues.Add(new DialogueData(
-                                    aDialogue._group,
-                                    start,
-                                    end,
-                                    mergedText,
-                                    aDialogue._style,
-                                    mainDialogue._extra_string,
-                                    mainDialogue._extra_int
-                                ));
-                            //}
+                            });
+
+                            // if later dialogue should appear on top of earlier dialogue
+                            if ( flipLinePositions ) ordered = ordered.Reverse();
+                            //overlap segment: merge all active dialogues textLines
+                            string mergedText = string.Join("\n", ordered );
+                            
+                            //add next empty lines
+                            if( addEffects && previousDialogueHighestIndex > 0 )
+                            {
+                                for( int emptyIndex = previousDialogueHighestIndex - 1; emptyIndex >= 0; emptyIndex-- )
+                                {
+                                    var scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
+                                    string emptyLine = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}\u200B";
+                                    if( flipLinePositions )
+                                        mergedText = emptyLine + "\n" + mergedText ;
+                                    else
+                                        mergedText += "\n" + emptyLine ;
+                                }
+                            }
+                            
+                            newDialogues.Add(new DialogueData(
+                                aDialogue._group,
+                                start,
+                                end,
+                                mergedText,
+                                aDialogue._style,
+                                mainDialogue._extra_string,
+                                mainDialogue._extra_int
+                            ));
                         }
                     }
                 }
@@ -309,7 +284,7 @@ public static class CollusionFixer
         return textLines.ToString();
     }
 
-    public static void CollusionFix( bool reverse, string topStyles, int scaleDownEffects, int lineSize )
+    public static void CollusionFix( bool reverse, string topStyles, string topGroups, int scaleDownEffects, int lineSize )
     {
         if( FileLoader.SubFiles.Count == 0)
         {
@@ -324,7 +299,7 @@ public static class CollusionFixer
             SubFile subFile = FileLoader.SubFiles[i];
             //CollusionFix
             ConsoleHelper.Verbose($"{subFile.FilePath}", "Collusion fixing: ");
-            var collusions = CollusionFix( subFile, reverse, topStyles, scaleDownEffects, lineSize );
+            var collusions = CollusionFix( subFile, reverse, topStyles, topGroups, scaleDownEffects, lineSize );
             
             ConsoleHelper.Verbose($"\t\tcollusions detected: {collusions}", "");
             totalFiles++;

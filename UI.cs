@@ -107,26 +107,26 @@ public static class UI
             Restyler.Regroup( parseResult.GetValue(optionSSADialogueStyles)! );
         });
 
-        var argumentGKeys = new Argument<string>("Definers"){ Description = "Input styling list(s) definers: [start char][end char], even number of chars.", Arity=ArgumentArity.ExactlyOne };
+        var argumentGKeys = new Argument<string>("Definers"){ Description = "groups definers: [start char][end char], even number of chars.", Arity=ArgumentArity.ExactlyOne };
         argumentGKeys.Validators.Add(result => {
             var gv = result.GetValue(argumentGKeys)!;
-            if( (gv.Length>=1) && (gv.Length % 2) != 0 ) result.AddError("Definers argument must be in pairs (even number of chars). example: ()[]<> ");
+            if( (gv.Length>=2) && (gv.Length % 2) != 0 ) result.AddError("group definers must be in pairs (even number of chars). example: ()[]<> ");
         });
         var argumentIsDialogue = new Argument<bool>("IsDialogue"){ Description = "is group tagged as dialog?", Arity=ArgumentArity.ExactlyOne };
         var argumentOverrideStyling = new Argument<string>("OverrideStyling"){ Description = "group style override code.", Arity=ArgumentArity.ZeroOrOne, DefaultValueFactory = _ => "" };
         
         var commandStyleList = new Command("list"){ Description = "view styling list." };
-        commandStyleList.SetAction(parseResult => Restyler.PrintTableStyleGroup());
+        commandStyleList.SetAction(parseResult => Restyler.PrintTableGroups());
 
         var commandStyleSet = new Command("set"){ Description = "add or update styling list by:\n\t1 - one or more character pair(s), that are used to identify the entries that belong to their group(s).\n\t2 - true/false, whether or not the identified entries are tagged as dialog.\n\t3 - \"override styling code \" - optional - added to the beggining of subtitle etries text.\nexample : restyle add () true {\\i1}\nexample : restyle push <>== false {\\an8}" };
         commandStyleSet.Arguments.Add( argumentGKeys );
         commandStyleSet.Arguments.Add( argumentIsDialogue );
         commandStyleSet.Arguments.Add( argumentOverrideStyling );
-        commandStyleSet.SetAction(_ => Restyler.SetStyleGroup( _.GetValue(argumentGKeys)!, _.GetValue(argumentIsDialogue), _.GetValue(argumentOverrideStyling)! ));
+        commandStyleSet.SetAction(_ => Restyler.SetGroups( _.GetValue(argumentGKeys)!, _.GetValue(argumentIsDialogue), _.GetValue(argumentOverrideStyling)!, true ));
 
         var commandStyleRemove = new Command("delete") { Description = "remove from styling list." };
         commandStyleRemove.Arguments.Add( argumentGKeys );
-        commandStyleRemove.SetAction(parseResult => Restyler.RemoveStyleGroup( parseResult.GetValue(argumentGKeys)! ));
+        commandStyleRemove.SetAction(parseResult => Restyler.RemoveGroups( parseResult.GetValue(argumentGKeys)! ));
 
         commandRegroup.Subcommands.Add(commandStyleList);
         commandRegroup.Subcommands.Add(commandStyleSet);
@@ -231,17 +231,23 @@ public static class UI
         var commandCollusionFix = new Command("collusion-fix", "Reform dialogues in a way that emulates reverse collusion, only for entries tagged as dialog, affected by groupings.");
         var optionReverse = new Option<bool>("--reverse", "-r") { Description = "when set, subtitles are shifted to make way for new ones.", DefaultValueFactory = _ => Config.Collusion_Reverse };
         var optionTopStyles = new Option<string>("--top-styles", "-t") { Description = "SSA style names of styles that are positioned at the top of the screen, use ',' to separate multiple style names.", DefaultValueFactory = _ => Config.Collusion_Top_Styles };
+        var optionTopGroups = new Option<string>("--top-groups", "-g") { Description = "group keys for groups that are positioned at the top of the screen.", DefaultValueFactory = _ => Config.Collusion_Top_Groups };
+        optionTopGroups.Validators.Add(result => {
+            var gv = result.GetValue(optionTopGroups)!;
+            if( (gv.Length>=2) && (gv.Length % 2) != 0 ) result.AddError("group definers must be in pairs (even number of chars). example: ()[]<> ");
+        });
         var optionScaleDown = new Option<int>("--scale-down", "-s") { Description = "add steps of scale-down percentage to the earliest of the overlapping dialogues, for example a value of 10 will scale the fist line by 100%, the second by 90%, the third by 80%, etc.", DefaultValueFactory = _ => Config.Collusion_Scale_Down };
         var optionLineSize = new Option<int>("--line-size", "-c") { Description = "apply forced line breaks, otherwise automatic line breaks will change the way subs are displayed when scaled-down.", DefaultValueFactory = _ => Config.Collusion_Line_Size };
         commandCollusionFix.Options.Add( optionReverse );
         commandCollusionFix.Options.Add( optionTopStyles );
+        commandCollusionFix.Options.Add( optionTopGroups );
         commandCollusionFix.Options.Add( optionScaleDown );
         commandCollusionFix.Options.Add( optionLineSize );
         root_command.Subcommands.Add(commandCollusionFix);
 
         commandCollusionFix.SetAction(_ => {
             Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
-            CollusionFixer.CollusionFix( _.GetValue( optionReverse ), _.GetValue( optionTopStyles )??"", _.GetValue( optionScaleDown ), _.GetValue( optionLineSize ) );
+            CollusionFixer.CollusionFix( _.GetValue( optionReverse ), _.GetValue( optionTopStyles )??"", _.GetValue( optionTopGroups )??"", _.GetValue( optionScaleDown ), _.GetValue( optionLineSize ) );
         });
 
         /******************************************************************************************************/

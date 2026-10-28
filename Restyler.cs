@@ -32,10 +32,10 @@ public static class Restyler
     internal static string RestyleTextLines( string textLines, int upGroup, bool removeGroupDefiners )
     {
         GroupParams GP;
-        if( upGroup >= 0 )//must not be -1
+        if( upGroup >= SubFile.DefaultGroupValueForDialogue )//must not be NoneDialogue
         {
             upGroup = GroupSSADialogueStyleDowngrade( upGroup );
-            GP = GroupsParams[upGroup];
+            GP = GroupParamsArray[upGroup];
         }else{
             GP = GroupParams.Empty;
         }
@@ -58,15 +58,15 @@ public static class Restyler
         if( textLines.Length >= 2 )
         {
             //find the group  
-            if (StyleListWithPosition.TryGetValue( new GroupKeys( textLines[0], textLines[^1] ), out var gValue))
+            if ( TryGetGroupID( textLines[0], textLines[^1], out var id ) )
             {
-                group = gValue.Position;
+                group = id;
             }
         }
         return group;
     }
 
-    internal static readonly Dictionary<GroupKeys, GroupParams> StyleList = [];
+    private static readonly Dictionary<GroupKeys, GroupParams> GroupsList = [];
     public struct GroupKeys(char cS, char cE)
     {
         public char CS=cS, CE=cE;
@@ -77,9 +77,9 @@ public static class Restyler
     {
         public bool IsDialogue;
         public string StyleOverrideCode;
-        public GroupParams(bool isDialogue, string styleOverrideCode ){ IsDialogue=isDialogue; StyleOverrideCode=styleOverrideCode; }
-        public GroupParams() => StyleOverrideCode="";
-        public static readonly GroupParams Empty = new(false, "");
+        public GroupParams( bool isDialogue, string styleOverrideCode ){ IsDialogue=isDialogue; StyleOverrideCode=styleOverrideCode; }
+        //public GroupParams(){ ID=SubFile.DefaultGroupValueForNoneDialogue; StyleOverrideCode="";}
+        public static readonly GroupParams Empty = new(){ IsDialogue=false, StyleOverrideCode="" };
         public override readonly string ToString() => $"IsDialogue:{IsDialogue}, StyleOverrideCode:{StyleOverrideCode}";
         public readonly Dictionary<string, object?> ToDictionary()
         {
@@ -125,49 +125,60 @@ public static class Restyler
         }
         return output;
     }
-    internal struct GroupParamsWithPosition
-    {
-        internal bool IsDialogue;
-        internal string StyleOverrideCode;
-        internal int Position;
-    }
 
     //used in retrieving "Group number" from styling list, using "GroupKeys(StartCharacter & EndCharacter)"
-    private static Dictionary<GroupKeys, GroupParamsWithPosition> StyleListWithPosition = [];
+    private static Dictionary<GroupKeys, int> GroupsIDs = [];
     //used in retrieving "GroupParams(IsDialogue & StyleOverrideCode)" from styling list, using "Group number"
-    private static GroupParams[] GroupsParams = [];
+    private static GroupParams[] GroupParamsArray = [];
     //used in checking if a character is a group definer and retrieving the closing chararcter.
     private static Dictionary<char, char> GroupsKeys = [];
     //used in GroupSSADialogueStyleUpgrade 
-    private static int StyleListCount = 0;//=> StyleList.Count + 1 (plus extra one for default entries not included in StyleList)
+    private static int GroupsListCount = 0;//=> StyleList.Count + 1 (plus extra one for default entries not included in StyleList)
+    public static object? GroupsListToDictionary() => GroupsList.ToDictionary( x => x.Key.ToString(), x => x.Value.ToDictionary(), StringComparer.OrdinalIgnoreCase );
 
     //run at restyler
     internal static void PrepareStyleListExtras()
     {
-        StyleListWithPosition = new( StyleList.Count );
-        GroupsParams = new GroupParams[StyleList.Count+1];
-        GroupsKeys = new( StyleList.Count );
+        GroupsIDs = new( GroupsList.Count );
+        GroupParamsArray = new GroupParams[GroupsList.Count+1];
+        GroupsKeys = new( GroupsList.Count );
         //group '0' is default group, "IsDialogue=true"
-        GroupsParams[ SubFile.DefaultGroupValueForDialogue ] = new GroupParams(
+        GroupParamsArray[ SubFile.DefaultGroupValueForDialogue ] = new GroupParams(
             true,
             ""
         );
 
         //we will start from 1;
         int i = 1;
-        foreach( var gv in StyleList )
+        foreach( var gv in GroupsList )
         {
-            StyleListWithPosition[gv.Key] = new GroupParamsWithPosition(){
-                IsDialogue = gv.Value.IsDialogue,
-                StyleOverrideCode = gv.Value.StyleOverrideCode,
-                Position = i
-            };
-            GroupsParams[i] = gv.Value;
+            GroupsIDs[gv.Key] = i;
+            GroupParamsArray[i] = gv.Value;
             GroupsKeys[gv.Key.CS] = gv.Key.CE;
 
             i++;
         }
-        StyleListCount = i;
+        GroupsListCount = i;
+    }
+    internal static bool TestGroupID( int gID, string groupDefiners )
+    {
+        if( gID == SubFile.DefaultGroupValueForNoneDialogue || groupDefiners == string.Empty )
+            return false;
+        foreach (GroupKeys key in CreateGroupsKeys(groupDefiners) )
+        {
+            if (GroupsIDs.TryGetValue(key, out int id ))
+            {
+                if( id == gID )
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    internal static bool TryGetGroupID( char CS, char CE, out int gID )
+    {
+        return GroupsIDs.TryGetValue( new GroupKeys( CS, CE ), out gID);
     }
     internal static bool TryGetGroupKey( char CS, out char CE)
     {
@@ -213,19 +224,19 @@ public static class Restyler
     }
     internal static int GroupSSADialogueStyleUpgrade( int group , int styleIndex )
     {
-        return group>-1? group+(styleIndex*StyleListCount) :group;
+        return group>SubFile.DefaultGroupValueForNoneDialogue? group+(styleIndex*GroupsListCount) :group;
     }
     internal static int GetUpgradedStyleListCount()
     {
-        return SSADialogueStylesCount * StyleListCount;
+        return SSADialogueStylesCount * GroupsListCount;
     }
     internal static int GroupSSADialogueStyleDowngrade( int group )
     {
-        return group>-1? group%StyleListCount :group;
+        return group>SubFile.DefaultGroupValueForNoneDialogue? group%GroupsListCount :group;
     }
     internal static GroupParams GetGroupParams( int downGroup )
     {
-        return GroupsParams[ downGroup ];
+        return GroupParamsArray[ downGroup ];
     }
 
 
@@ -258,9 +269,9 @@ public static class Restyler
         return text + new string(' ', Math.Max(0, pad));
     }
     
-    public static void PrintTableStyleGroup()
+    public static void PrintTableGroups()
     {
-        if( StyleList.Count == 0 ){
+        if( GroupsList.Count == 0 ){
             ConsoleHelper.Error("Empty style list!");
             return;
         }
@@ -273,32 +284,32 @@ public static class Restyler
         int widthDefiner = definerHeader.Length;
         int widthIsDialogue = isDialogueHeader.Length;
         Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
-        foreach( var gv in StyleList )
+        foreach( var gv in GroupsList )
         {
             Console.WriteLine(string.Format("{0} | {1,-" + widthIsDialogue + "} | {2}", PadRightForDisplay(gv.Key.ToString(),widthDefiner), gv.Value.IsDialogue, gv.Value.StyleOverrideCode));
         }
         Console.WriteLine(new string('-', widthDefiner + widthIsDialogue + 30));
     }
 
-    public static void SetStyleGroup( string keys, bool isDialogue, string overrideStyling, bool showMsg=true )
+    public static void SetGroups( string keys, bool isDialogue, string overrideStyling, bool showMsg=false )
     {
         foreach( var gv in CreateGroups( keys, isDialogue, overrideStyling ) )
         {
-            string _txt = StyleList.ContainsKey( gv.Key )? "UPDATED: ":"INSERTED: ";
-            StyleList[gv.Key] = gv.Value;
+            string _txt = GroupsList.ContainsKey( gv.Key )? "UPDATED: ":"INSERTED: ";
+            GroupsList[gv.Key] = gv.Value;
             if( showMsg ) ConsoleHelper.Success( $"=> {gv.ToString()}", $"\t{_txt}\t " );
         }
     }
-    public static void RemoveStyleGroup( string keys )
+    public static void RemoveGroups( string keys )
     {
-        if( StyleList.Count == 0 ) ConsoleHelper.Error("Empty style list!");
+        if( GroupsList.Count == 0 ) ConsoleHelper.Error("Empty style list!");
         else
         {
             foreach( var key in CreateGroupsKeys(keys))
-            if ( StyleList.ContainsKey( key ) )
+            if ( GroupsList.ContainsKey( key ) )
             {
-                ConsoleHelper.Success( $"=> {StyleList[key].ToString()}", $"\tREMOVED: \t " );
-                Console.WriteLine( StyleList.Remove( key) );
+                ConsoleHelper.Success( $"=> {GroupsList[key].ToString()}", $"\tREMOVED: \t " );
+                Console.WriteLine( GroupsList.Remove( key) );
             }else
                  ConsoleHelper.Error( $"Key not found{{{key}}}" );
         }

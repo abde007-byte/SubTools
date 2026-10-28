@@ -171,7 +171,7 @@ subtools regroup delete <Definers>
 
 | Argument | Description |
 | --- | --- |
-| `Definers` | Styling list definers, such as `[start char][end char]` pairs. Must contain an even number of characters, for example `()[]<>`. |
+| `Definers` | groups definers are pairs of Chars such as parentheses or brackets. Must contain an even number of characters, for example `()[]<>`. |
 | `IsDialogue` | Boolean flag indicating whether the matched group should be treated as dialogue. |
 | `OverrideStyling` | Optional override style code added at the beginning of subtitle text. Defaults to an empty string. |
 
@@ -244,6 +244,7 @@ subtools collusion-fix [options]
 | --- | --- |
 | `-r, --reverse` | When set, subtitles are shifted to make way for new ones. |
 | `-t, --top-styles` | SSA style names of styles that are positioned at the top of the screen, use ',' to separate multiple style names. |
+| `-g, --top-groups` |  group keys for groups that are positioned at the top of the screen. |
 | `-s, --scale-down` | add steps of scale-down percentage to the earliest of the overlapping dialogues, for example a value of 10 will scale the fist line by 100%, the second by 90%, the third by 80%, etc. |
 | `-c, --line-size` | apply forced line breaks, otherwise automatic line breaks will change the way subs are displayed when scaled-down. |
 

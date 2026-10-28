@@ -38,6 +38,7 @@ public static class Config
     /*************************************************************************/
     internal static bool Collusion_Reverse = true;
     internal static string Collusion_Top_Styles = "Top,TopItalics";
+    internal static string Collusion_Top_Groups = "";
     internal static int Collusion_Scale_Down = 10;
     internal static int Collusion_Line_Size = 100;
     /*************************************************************************/
@@ -73,6 +74,9 @@ public static class Config
 
         "Collusion:Reverse",
         "Collusion:Top Styles",
+        "Collusion:Top Groups",
+        "Collusion:Scale Down",
+        "Collusion:Line Size",
 
         "Save:Skip Backup",
         "Save:Remove Group Definers"
@@ -160,25 +164,29 @@ public static class Config
 
             //read values of Restyler.StyleList
             var loadedStyleGroups = config.GetSection("Style:Groups").GetChildren();//.Get<Dictionary<string, Restyler.GroupParams>>();
-            if( loadedStyleGroups != null ) foreach( var styleGroup in loadedStyleGroups! )
+            bool didLoadedStyleGroups = false;
+            if( loadedStyleGroups != null )
             {
-                var value = Restyler.GroupParams.FromDictionary(
-                    styleGroup.GetChildren().ToDictionary(x => x.Key, x => (object?)x.Value)
-                );
-                Restyler.SetStyleGroup( styleGroup.Key, value.IsDialogue, value.StyleOverrideCode, false);
+                foreach( var styleGroup in loadedStyleGroups! )
+                {
+                    var value = Restyler.GroupParams.FromDictionary(
+                        styleGroup.GetChildren().ToDictionary(x => x.Key, x => (object?)x.Value)
+                    );
+                    Restyler.SetGroups( styleGroup.Key, value.IsDialogue, value.StyleOverrideCode, false);
+                    didLoadedStyleGroups = true;
+                }
+            }
+            if( ! didLoadedStyleGroups )
+            {
+                Restyler.SetGroups( "[]「」『』【】〔〕［］", false, "{\\an8}", false);
+                Restyler.SetGroups( "()==《》〈〉（）｛｝«»“”‘’", true, "{\\i1}", false);
+                Restyler.SetGroups( "♪♪♫♫", false, "{\\an8\\i1}", false);
+                //Restyler.SetStyleGroup( "()[]==《》〈〉「」『』【】〔〕（）［］｛｝«»“”‘’♪♪♫♫", false, "{\\an8\\i1}", false);
             }
         }
         catch (Exception err)
         {
             ConsoleHelper.Error(err.Message);
-        }
-
-        if( Restyler.StyleList.Count == 0)
-        {
-            Restyler.SetStyleGroup( "[]「」『』【】〔〕［］", false, "{\\an8}", false);
-            Restyler.SetStyleGroup( "()==《》〈〉（）｛｝«»“”‘’", true, "{\\i1}", false);
-            Restyler.SetStyleGroup( "♪♪♫♫", false, "{\\an8\\i1}", false);
-            //Restyler.SetStyleGroup( "()[]==《》〈〉「」『』【】〔〕（）［］｛｝«»“”‘’♪♪♫♫", false, "{\\an8\\i1}", false);
         }
     }
 
@@ -191,13 +199,8 @@ public static class Config
             AddValueToTree(root, key, value);
         }
 
-        //insert values of Restyler.StyleList
-        var styleGroups = Restyler.StyleList.ToDictionary(
-                x => x.Key.ToString(),
-                x => x.Value.ToDictionary(),
-                StringComparer.OrdinalIgnoreCase
-        );
-        AddValueToTree(root, "Style:Groups", styleGroups );
+        //insert values of Restyler.GroupsList
+        AddValueToTree(root, "Style:Groups", Restyler.GroupsListToDictionary() );
 
         var json = JsonSerializer.Serialize(root, new JsonSerializerOptions{ WriteIndented = true });
         File.WriteAllText( FilePath, json);
