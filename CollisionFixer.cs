@@ -110,8 +110,7 @@ public static class CollisionFixer
                         if( addEffects )
                         {
                             clusterDialoguesHighestIndex = new int[ cluster.Count ];
-                            for (int i = 0; i < clusterDialoguesHighestIndex.Length; i++)
-                                clusterDialoguesHighestIndex[i] = 0;
+                            //for (int i = 0; i < clusterDialoguesHighestIndex.Length; i++) clusterDialoguesHighestIndex[i] = 0;
                         }
                         
                         //loop through times keyframes
