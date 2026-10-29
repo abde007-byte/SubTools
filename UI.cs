@@ -91,6 +91,8 @@ public static class UI
                 Console.SetCursorPosition( Math.Min(width, Console.BufferWidth - PromptStart), topPos);//The value must be less than the console's buffer size in that dimension.
             }
 
+            CompletionsDisplay();
+
             while (true)
             {
                 var key = Console.ReadKey(true);
