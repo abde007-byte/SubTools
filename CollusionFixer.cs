@@ -220,7 +220,7 @@ public static class CollusionFixer
 
     public static string ApplyForcedLineBreaks( string input, int lineSize )
     {
-        if ( string.IsNullOrEmpty( input ) || lineSize <= 0 )
+        if ( string.IsNullOrEmpty( input ) || lineSize <= 0 || input.Contains('\n') )
             return input;
 
         if ( input.Length <= lineSize )

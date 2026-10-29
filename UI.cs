@@ -16,11 +16,11 @@ public static class UI
         {
             //add exit command, with no handlers!
             root_command.Subcommands.Add( new Command("exit", "Exit Subtitles Tools.") );
+            
             //continue to run commands without exiting, until exit command
             while (true)
             {
-                Console.Write("> ");
-                string? line = Console.ReadLine();
+                string? line = SmartReadLine();
                 if (line == null) break;// EOF
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 if (line.Equals("exit", StringComparison.OrdinalIgnoreCase))
@@ -32,6 +32,150 @@ public static class UI
         }
 
         return exitCode;
+    }
+
+    private static List<string> SmartReadLineHistory = new ();
+    private static int SmartReadLineHistoryIndex = -1;
+    private static string? SmartReadLine()
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Write("> ");
+        Console.ResetColor();
+        const int PromptStart = 2;
+
+        try
+        {
+            string input = "";
+            void ClearAllInput( string newV = "" )
+            {
+                int topPos = Console.CursorTop;//better to keep track of, in case a line break happens
+                Console.SetCursorPosition( PromptStart, topPos);
+                //var back = new string('\b', input.Length);
+                //Console.Write( back );
+                Console.Write( new string(' ', input.Length) );
+                //Console.Write( back );
+                Console.SetCursorPosition( PromptStart, topPos);
+                input = newV;
+                Console.Write( input );
+            }
+
+            var plusString = "";
+            void CompletionsDisplay()
+            {
+                var completions = root_command.Parse(input).GetCompletions();
+                //display first match of the completions list
+                plusString = "";
+                if( completions.Any())
+                {
+                    var firstCompletion = completions.First().ToString();
+                    int index = input.LastIndexOf(' ');
+                    var inputLast = (index>=0)? input.Substring(index + 1) : input;
+                    if( firstCompletion.Length > inputLast.Length )
+                    {
+                        if( firstCompletion.Substring( 0, inputLast.Length) == inputLast)
+                        {
+                            plusString = firstCompletion.Substring(inputLast.Length);
+                        }
+                    }
+                    else
+                    {
+                        plusString = firstCompletion;
+                    }
+                } 
+                //clear extra displayed text
+                int width = PromptStart + input.Length;
+                int topPos = Console.CursorTop;//better to keep track of, in case a line break happens
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write( plusString + new string(' ', Math.Max(0, Console.WindowWidth - plusString.Length - width) ) );
+                Console.ResetColor();
+                Console.SetCursorPosition( Math.Min(width, Console.BufferWidth - PromptStart), topPos);//The value must be less than the console's buffer size in that dimension.
+            }
+
+            while (true)
+            {
+                var key = Console.ReadKey(true);
+
+                if (key.Key == ConsoleKey.Tab)
+                {
+                    var completions = root_command.Parse(input).GetCompletions();
+                    // display completions in a list, or insert if only one match is found
+                    if (completions.Any() )
+                    {
+                        if( completions.Count() == 1)
+                        {
+                            input += plusString;
+                            Console.Write(plusString);
+                            plusString = "";
+                        }
+                        else
+                        {
+                            Console.WriteLine();
+                            foreach (var s in completions.Take(10))
+                                Console.WriteLine(s);
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.Write("> ");
+                            Console.ResetColor();
+                            Console.Write( input );
+                            CompletionsDisplay();
+                        }
+                    }
+                }
+                else if (key.Key == ConsoleKey.RightArrow)
+                {
+                    input += plusString;
+                    Console.Write(plusString);
+                    plusString = "";
+                }
+                else if ( ! char.IsControl(key.KeyChar) )
+                {
+                    input += key.KeyChar;
+                    Console.Write(key.KeyChar);
+                    CompletionsDisplay();
+                }
+                else if (key.Key == ConsoleKey.Backspace)
+                {
+                    if( input.Length > 0)
+                    {
+                        input = input.Substring(0, input.Length - 1);
+                        //Console.Write("\b \b");
+                        Console.Write("\b");//with CompletionsDisplay() only \b is needed
+                        CompletionsDisplay();
+                    }
+                }
+                else if (key.Key == ConsoleKey.UpArrow)
+                {
+                    if ( SmartReadLineHistory.Count > 0 && SmartReadLineHistoryIndex > 0 )
+                    {
+                        SmartReadLineHistoryIndex--;
+                        ClearAllInput( SmartReadLineHistory[SmartReadLineHistoryIndex] );
+                    }
+                }
+                else if (key.Key == ConsoleKey.DownArrow)
+                {
+                    if ( SmartReadLineHistory.Count > 0 && SmartReadLineHistoryIndex < SmartReadLineHistory.Count - 1 )
+                    {
+                        SmartReadLineHistoryIndex++;
+                        ClearAllInput( SmartReadLineHistory[SmartReadLineHistoryIndex] );
+                    }
+                }
+                else if (key.Key == ConsoleKey.Enter)
+                {
+                    Console.WriteLine();
+                    //add to history
+                    if (!string.IsNullOrWhiteSpace(input))
+                    {
+                        SmartReadLineHistory.Add(input);
+                        SmartReadLineHistoryIndex = SmartReadLineHistory.Count;
+                    }
+                    //end loop
+                    return input;
+                }
+            }
+        }
+        catch
+        {
+            return Console.ReadLine();
+        }
     }
 
     static UI()
