@@ -36,11 +36,11 @@ public static class Config
     internal static double Recalculate_Max_Duration = 6.0;
     internal static double Recalculate_Gap = 0.0;
     /*************************************************************************/
-    internal static bool Collusion_Reverse = true;
-    internal static string Collusion_Top_Styles = "Top,TopItalics";
-    internal static string Collusion_Top_Groups = "";
-    internal static int Collusion_Scale_Down = 10;
-    internal static int Collusion_Line_Size = 100;
+    internal static bool Collision_Reverse = true;
+    internal static string Collision_Top_Styles = "Top,TopItalics";
+    internal static string Collision_Top_Groups = "";
+    internal static int Collision_Scale_Down = 10;
+    internal static int Collision_Line_Size = 100;
     /*************************************************************************/
     internal static bool Save_Remove_Group_Definers = false;
     internal static bool Save_Skip_Backup = false;
@@ -72,11 +72,11 @@ public static class Config
         "Recalculate:Max Duration",
         "Recalculate:Gap",
 
-        "Collusion:Reverse",
-        "Collusion:Top Styles",
-        "Collusion:Top Groups",
-        "Collusion:Scale Down",
-        "Collusion:Line Size",
+        "Collision:Reverse",
+        "Collision:Top Styles",
+        "Collision:Top Groups",
+        "Collision:Scale Down",
+        "Collision:Line Size",
 
         "Save:Skip Backup",
         "Save:Remove Group Definers"

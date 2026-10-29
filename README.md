@@ -230,14 +230,14 @@ subtools recalculate [options]
 | `-X, --max-duration` | Maximum display duration in seconds. |
 | `-G, --gap` | Gap between dialogues in seconds. |
 
-### `collusion-fix`
+### `collision-fix`
 
-Reform dialogue timings to emulate reverse collusion, only for entries tagged as dialogue and affected by grouping.
+Reform dialogue timings to emulate reverse collision, only for entries tagged as dialogue and affected by grouping.
 
 Usage:
 
 ```bash
-subtools collusion-fix [options]
+subtools collision-fix [options]
 ```
 
 | Option | Description |

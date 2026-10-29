@@ -372,28 +372,28 @@ public static class UI
         });
 
         /******************************************************************************************************/
-        /***CollusionFixer*************************************************************************************/
+        /***CollisionFixer*************************************************************************************/
         /******************************************************************************************************/
-        var commandCollusionFix = new Command("collusion-fix", "Reform dialogues in a way that emulates reverse collusion, only for entries tagged as dialog, affected by groupings.");
-        var optionReverse = new Option<bool>("--reverse", "-r") { Description = "when set, subtitles are shifted to make way for new ones.", DefaultValueFactory = _ => Config.Collusion_Reverse };
-        var optionTopStyles = new Option<string>("--top-styles", "-t") { Description = "SSA style names of styles that are positioned at the top of the screen, use ',' to separate multiple style names.", DefaultValueFactory = _ => Config.Collusion_Top_Styles };
-        var optionTopGroups = new Option<string>("--top-groups", "-g") { Description = "group keys for groups that are positioned at the top of the screen.", DefaultValueFactory = _ => Config.Collusion_Top_Groups };
+        var commandCollisionFix = new Command("collision-fix", "Reform dialogues in a way that emulates reverse collision, only for entries tagged as dialog, affected by groupings.");
+        var optionReverse = new Option<bool>("--reverse", "-r") { Description = "when set, subtitles are shifted to make way for new ones.", DefaultValueFactory = _ => Config.Collision_Reverse };
+        var optionTopStyles = new Option<string>("--top-styles", "-t") { Description = "SSA style names of styles that are positioned at the top of the screen, use ',' to separate multiple style names.", DefaultValueFactory = _ => Config.Collision_Top_Styles };
+        var optionTopGroups = new Option<string>("--top-groups", "-g") { Description = "group keys for groups that are positioned at the top of the screen.", DefaultValueFactory = _ => Config.Collision_Top_Groups };
         optionTopGroups.Validators.Add(result => {
             var gv = result.GetValue(optionTopGroups)!;
             if( (gv.Length>=2) && (gv.Length % 2) != 0 ) result.AddError("group definers must be in pairs (even number of chars). example: ()[]<> ");
         });
-        var optionScaleDown = new Option<int>("--scale-down", "-s") { Description = "add steps of scale-down percentage to the earliest of the overlapping dialogues, for example a value of 10 will scale the fist line by 100%, the second by 90%, the third by 80%, etc.", DefaultValueFactory = _ => Config.Collusion_Scale_Down };
-        var optionLineSize = new Option<int>("--line-size", "-c") { Description = "apply forced line breaks, otherwise automatic line breaks will change the way subs are displayed when scaled-down.", DefaultValueFactory = _ => Config.Collusion_Line_Size };
-        commandCollusionFix.Options.Add( optionReverse );
-        commandCollusionFix.Options.Add( optionTopStyles );
-        commandCollusionFix.Options.Add( optionTopGroups );
-        commandCollusionFix.Options.Add( optionScaleDown );
-        commandCollusionFix.Options.Add( optionLineSize );
-        root_command.Subcommands.Add(commandCollusionFix);
+        var optionScaleDown = new Option<int>("--scale-down", "-s") { Description = "add steps of scale-down percentage to the earliest of the overlapping dialogues, for example a value of 10 will scale the fist line by 100%, the second by 90%, the third by 80%, etc.", DefaultValueFactory = _ => Config.Collision_Scale_Down };
+        var optionLineSize = new Option<int>("--line-size", "-c") { Description = "apply forced line breaks, otherwise automatic line breaks will change the way subs are displayed when scaled-down.", DefaultValueFactory = _ => Config.Collision_Line_Size };
+        commandCollisionFix.Options.Add( optionReverse );
+        commandCollisionFix.Options.Add( optionTopStyles );
+        commandCollisionFix.Options.Add( optionTopGroups );
+        commandCollisionFix.Options.Add( optionScaleDown );
+        commandCollisionFix.Options.Add( optionLineSize );
+        root_command.Subcommands.Add(commandCollisionFix);
 
-        commandCollusionFix.SetAction(_ => {
+        commandCollisionFix.SetAction(_ => {
             Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
-            CollusionFixer.CollusionFix( _.GetValue( optionReverse ), _.GetValue( optionTopStyles )??"", _.GetValue( optionTopGroups )??"", _.GetValue( optionScaleDown ), _.GetValue( optionLineSize ) );
+            CollisionFixer.CollisionFix( _.GetValue( optionReverse ), _.GetValue( optionTopStyles )??"", _.GetValue( optionTopGroups )??"", _.GetValue( optionScaleDown ), _.GetValue( optionLineSize ) );
         });
 
         /******************************************************************************************************/

@@ -1,7 +1,7 @@
 using System.Text;
 
 namespace SubTools;
-public static class CollusionFixer
+public static class CollisionFixer
 {
     struct CDialogueData
     {
@@ -9,10 +9,10 @@ public static class CollusionFixer
         public string _textLines,_extra_string;
     }
     
-    //collusion fixer: reform dialogues in a way that emulates reverse collusion.
-    public static int CollusionFix( SubFile sf, bool reverse, string topStyles, string topGroups, int scaleDownEffects, int lineSize )
+    //collision fixer: reform dialogues in a way that emulates reverse collision.
+    public static int CollisionFix( SubFile sf, bool reverse, string topStyles, string topGroups, int scaleDownEffects, int lineSize )
     {
-        int collusions = 0;
+        int collisions = 0;
         var newDialogues = new List<DialogueData>( sf._dialogues.Count );
         var DialoguesIndices = SubFile.GetDialoguesIndicesInGroups( sf._dialogues );
 
@@ -78,7 +78,7 @@ public static class CollusionFixer
                             clusterEnd = Math.Max( clusterEnd, nextDialogue._end);
                             //current x is added to cluster, move to next index
                             x++;
-                            collusions++;
+                            collisions++;
                         }
                         else
                         {
@@ -215,7 +215,7 @@ public static class CollusionFixer
         //replace and sort the final list
         sf._dialogues = newDialogues;
         sf.SortByStartTime();
-        return collusions;
+        return collisions;
     }
 
     public static string ApplyForcedLineBreaks( string input, int lineSize )
@@ -284,7 +284,7 @@ public static class CollusionFixer
         return textLines.ToString();
     }
 
-    public static void CollusionFix( bool reverse, string topStyles, string topGroups, int scaleDownEffects, int lineSize )
+    public static void CollisionFix( bool reverse, string topStyles, string topGroups, int scaleDownEffects, int lineSize )
     {
         if( FileLoader.SubFiles.Count == 0)
         {
@@ -293,19 +293,19 @@ public static class CollusionFixer
         }
 
         int totalFiles = 0;
-        int totalCollusions = 0;
+        int totalCollisions = 0;
         for( int i=0; i<FileLoader.SubFiles.Count; i++ )
         {
             SubFile subFile = FileLoader.SubFiles[i];
-            //CollusionFix
-            ConsoleHelper.Verbose($"{subFile.FilePath}", "Collusion fixing: ");
-            var collusions = CollusionFix( subFile, reverse, topStyles, topGroups, scaleDownEffects, lineSize );
+            //CollisionFix
+            ConsoleHelper.Verbose($"{subFile.FilePath}", "Collision fixing: ");
+            var collisions = CollisionFix( subFile, reverse, topStyles, topGroups, scaleDownEffects, lineSize );
             
-            ConsoleHelper.Verbose($"\t\tcollusions detected: {collusions}", "");
+            ConsoleHelper.Verbose($"\t\tcollisions detected: {collisions}", "");
             totalFiles++;
-            totalCollusions += collusions;
+            totalCollisions += collisions;
         }
 
-        ConsoleHelper.Success($"Files processed: {totalFiles} | Total collusions detected: {totalCollusions}", "Completed. ");
+        ConsoleHelper.Success($"Files processed: {totalFiles} | Total collisions detected: {totalCollisions}", "Completed. ");
     }
 }
