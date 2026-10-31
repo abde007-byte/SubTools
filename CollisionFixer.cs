@@ -201,10 +201,20 @@ public static class CollisionFixer
                     }
                 }
             }
+            else
+            {
+                //part 4:
+                //add the NoneDialogues
+                //lopp through indices list
+                for (int x = 0; x < indicesList.Count; x++)
+                {
+                    newDialogues.Add( sf._dialogues[ indicesList[x] ] );
+                }
+            }
         }
 
-        //part 4:
-        //add the NoneDialogues
+        //part 5:
+        //add the NoneGroups
         foreach (var dialogue in sf._dialogues)
         if( dialogue._group == SubFile.DefaultGroupValueForNoneDialogue )
         {
