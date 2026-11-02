@@ -48,6 +48,7 @@ public static class UI
             void ClearAllInput( string newV = "" )
             {
                 input = newV;
+                plusString = "";
                 InputDisplayUpdate();
             }
 
