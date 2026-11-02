@@ -38,29 +38,50 @@ public static class UI
     private static int SmartReadLineHistoryIndex = -1;
     private static string? SmartReadLine()
     {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.Write("> ");
-        Console.ResetColor();
-        const int PromptStart = 2;
-
         try
         {
             string input = "";
+            string plusString;
+            int _inputLength = 0;
+            int topLine = Console.CursorTop;//keep track of, in case of a line break
+            
             void ClearAllInput( string newV = "" )
             {
-                int topPos = Console.CursorTop;//better to keep track of, in case a line break happens
-                Console.SetCursorPosition( PromptStart, topPos);
-                //var back = new string('\b', input.Length);
-                //Console.Write( back );
-                Console.Write( new string(' ', input.Length) );
-                //Console.Write( back );
-                Console.SetCursorPosition( PromptStart, topPos);
                 input = newV;
-                Console.Write( input );
+                InputDisplayUpdate();
             }
 
-            var plusString = "";
-            void CompletionsDisplay()
+            void InputDisplayUpdate()
+            {
+                topLine = Math.Min( topLine, Console.CursorTop );//in case of a "clear"
+                //prepare for the BufferHeight shift
+                int shift = _inputLength / Console.BufferWidth;
+                shift += 1 + topLine - Console.BufferHeight;
+                while( shift >= 0)
+                {
+                    shift--;
+                    topLine--;
+                    Console.WriteLine();
+                }
+
+                Console.SetCursorPosition( 0, topLine);
+                Console.Write(  new string(' ', _inputLength ) );
+                Console.SetCursorPosition( 0, topLine);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write("> ");
+                Console.ResetColor();
+                Console.Write( input );
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write( plusString );
+                _inputLength = 2+input.Length;
+                ( int _top, int _left ) = Math.DivRem( _inputLength, Console.BufferWidth );
+                //without the shift above, this part has problems when the buffer is full
+                Console.SetCursorPosition( Math.Min( _left, Console.BufferWidth-1), Math.Min( topLine+_top, Console.BufferHeight-1) );
+                Console.ResetColor();
+                _inputLength += plusString.Length;
+            }
+
+            void CompletionsPreview()
             {
                 var completions = root_command.Parse(input).GetCompletions();
                 //display first match of the completions list
@@ -82,16 +103,15 @@ public static class UI
                         plusString = firstCompletion;
                     }
                 } 
-                //clear extra displayed text
-                int width = PromptStart + input.Length;
-                int topPos = Console.CursorTop;//better to keep track of, in case a line break happens
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write( plusString + new string(' ', Math.Max(0, Console.WindowWidth - plusString.Length - width) ) );
-                Console.ResetColor();
-                Console.SetCursorPosition( Math.Min(width, Console.BufferWidth - PromptStart), topPos);//The value must be less than the console's buffer size in that dimension.
             }
 
-            CompletionsDisplay();
+            void CompletionsApply(){
+                input += plusString;
+                plusString = "";
+            }
+
+            CompletionsPreview();
+            InputDisplayUpdate();
 
             while (true)
             {
@@ -105,43 +125,41 @@ public static class UI
                     {
                         if( completions.Count() == 1)
                         {
-                            input += plusString;
-                            Console.Write(plusString);
-                            plusString = "";
+                            CompletionsApply();
+                            InputDisplayUpdate();
                         }
                         else
                         {
                             Console.WriteLine();
-                            foreach (var s in completions.Take(10))
+                            foreach (var s in completions.Take(25))
                                 Console.WriteLine(s);
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Write("> ");
-                            Console.ResetColor();
-                            Console.Write( input );
-                            CompletionsDisplay();
+                            
+                            //update top line position
+                            Console.WriteLine();//insert empty line
+                            topLine = Console.CursorTop;//select lastest empty input line
+                            CompletionsPreview();
+                            InputDisplayUpdate();
                         }
                     }
                 }
                 else if (key.Key == ConsoleKey.RightArrow)
                 {
-                    input += plusString;
-                    Console.Write(plusString);
-                    plusString = "";
+                    CompletionsApply();
+                    InputDisplayUpdate();
                 }
                 else if ( ! char.IsControl(key.KeyChar) )
                 {
                     input += key.KeyChar;
-                    Console.Write(key.KeyChar);
-                    CompletionsDisplay();
+                    CompletionsPreview();
+                    InputDisplayUpdate();
                 }
                 else if (key.Key == ConsoleKey.Backspace)
                 {
                     if( input.Length > 0)
                     {
                         input = input.Substring(0, input.Length - 1);
-                        //Console.Write("\b \b");
-                        Console.Write("\b");//with CompletionsDisplay() only \b is needed
-                        CompletionsDisplay();
+                        CompletionsPreview();
+                        InputDisplayUpdate();
                     }
                 }
                 else if (key.Key == ConsoleKey.UpArrow)
@@ -176,6 +194,9 @@ public static class UI
         }
         catch
         {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("> ");
+            Console.ResetColor();
             return Console.ReadLine();
         }
     }

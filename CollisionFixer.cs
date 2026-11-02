@@ -16,7 +16,7 @@ public static class CollisionFixer
         var newDialogues = new List<DialogueData>( sf._dialogues.Count );
         var DialoguesIndices = SubFile.GetDialoguesIndicesInGroups( sf._dialogues );
 
-        bool addEffects = scaleDownEffects > 0;
+        bool addScaleEffects = scaleDownEffects > 0;
 
         HashSet<string> topStylesHash = new( topStyles.Split(',') );
 
@@ -47,8 +47,7 @@ public static class CollisionFixer
                     //create a cluster of colliding dialogues
 
                     var aDialogue = sf._dialogues[ indicesList[x] ];
-                    if( addEffects )
-                        aDialogue._textLines = ApplyForcedLineBreaks( aDialogue._textLines, lineSize );
+                    aDialogue._textLines = ApplyForcedLineBreaks( aDialogue._textLines, lineSize );
                     x++;//move to next
                     int id = 0;
                     var cluster = new List<CDialogueData> { new(){
@@ -71,7 +70,7 @@ public static class CollisionFixer
                                 _id = id,
                                 _start=nextDialogue._start,
                                 _end=nextDialogue._end,
-                                _textLines=addEffects?ApplyForcedLineBreaks( nextDialogue._textLines, lineSize ) :  nextDialogue._textLines,
+                                _textLines=ApplyForcedLineBreaks( nextDialogue._textLines, lineSize ),
                                 _extra_string=nextDialogue._extra_string,
                                 _extra_int=nextDialogue._extra_int
                             } );
@@ -107,11 +106,8 @@ public static class CollisionFixer
                         
                         //create list to record lowest scale seen so far for each CDialogueData
                         int[] clusterDialoguesHighestIndex = [];
-                        if( addEffects )
-                        {
-                            clusterDialoguesHighestIndex = new int[ cluster.Count ];
-                            //for (int i = 0; i < clusterDialoguesHighestIndex.Length; i++) clusterDialoguesHighestIndex[i] = 0;
-                        }
+                        clusterDialoguesHighestIndex = new int[ cluster.Count ];
+                        //for (int i = 0; i < clusterDialoguesHighestIndex.Length; i++) clusterDialoguesHighestIndex[i] = 0;
                         
                         //loop through times keyframes
                         for (int i = 0; i < timeKeyFrames.Count - 1; i++)
@@ -133,40 +129,41 @@ public static class CollisionFixer
                             
                             var mainDialogue = active[activeLastIndex];
                             int previousDialogueHighestIndex = 0;
-                            var ordered = active.Select( (d, index) => {
-                                if( addEffects)
+                            var ordered = active.Select( (d, index) =>
+                            {
+                                var dialogueIndex = activeLastIndex - index;//reverse index order
+                                var dialogueHighestIndex = clusterDialoguesHighestIndex[d._id];
+                                if( dialogueIndex > dialogueHighestIndex )
                                 {
-                                    var dialogueIndex = activeLastIndex - index;
-                                    var dialogueHighestIndex = clusterDialoguesHighestIndex[d._id];
-                                    if( dialogueIndex > dialogueHighestIndex )
-                                    {
-                                            clusterDialoguesHighestIndex[d._id] = dialogueIndex;
-                                            dialogueHighestIndex = dialogueIndex;
-                                    }
+                                        clusterDialoguesHighestIndex[d._id] = dialogueIndex;
+                                        dialogueHighestIndex = dialogueIndex;
+                                }
+
+                                string result = d._textLines;
+                                if( addScaleEffects)
+                                {
                                     //calculate scale; latest entry scale = 100%
                                     int scalePercent = Math.Max(0, 100 - ( dialogueHighestIndex * scaleDownEffects ) );
-                                    string result = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}{d._textLines}";
-
-                                    //add previous empty lines
-                                    for( int emptyIndex = dialogueHighestIndex + 1; emptyIndex < previousDialogueHighestIndex; emptyIndex++ )
-                                    {
-                                        scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
-                                        string emptyLine = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}\u200B";
-                                        if ( flipLinePositions )
-                                            result += "\n" + emptyLine;
-                                        else
-                                            result = emptyLine + "\n" + result;
-                                    }
-
-                                    previousDialogueHighestIndex = dialogueHighestIndex;
-
-                                    return result;
-                                }
-                                else
-                                {
-                                    return d._textLines;
+                                    result = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}{result}";
                                 }
                                 
+                                //add previous empty lines
+                                for( int emptyIndex = dialogueHighestIndex + 1; emptyIndex < previousDialogueHighestIndex; emptyIndex++ )
+                                {
+                                    string emptyLine = "\u200B";
+                                    if(addScaleEffects)
+                                    {
+                                        int scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
+                                        emptyLine = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}{emptyLine}";
+                                    }
+                                    if ( flipLinePositions )
+                                        result += "\n" + emptyLine;
+                                    else
+                                        result = emptyLine + "\n" + result;
+                                }
+
+                                previousDialogueHighestIndex = dialogueHighestIndex;
+                                return result;
                             });
 
                             // if later dialogue should appear on top of earlier dialogue
@@ -175,12 +172,16 @@ public static class CollisionFixer
                             string mergedText = string.Join("\n", ordered );
                             
                             //add next empty lines
-                            if( addEffects && previousDialogueHighestIndex > 0 )
+                            if( previousDialogueHighestIndex > 0 )
                             {
                                 for( int emptyIndex = previousDialogueHighestIndex - 1; emptyIndex >= 0; emptyIndex-- )
                                 {
-                                    var scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
-                                    string emptyLine = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}\u200B";
+                                    string emptyLine = "\u200B";
+                                    if( addScaleEffects )
+                                    {
+                                        var scalePercent = Math.Max(0, 100 - ( emptyIndex * scaleDownEffects ) );
+                                        emptyLine = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}{emptyLine}";
+                                    }
                                     if( flipLinePositions )
                                         mergedText = emptyLine + "\n" + mergedText ;
                                     else
@@ -300,6 +301,29 @@ public static class CollisionFixer
             ConsoleHelper.Warning("need to load files!");
             return;
         }
+
+        /*
+        private static string[] _ScalePercent = [];
+        private static int _ScalePercentHigh;
+        //create ScalePercent lookup data
+        if( scaleDownEffects > 0)
+        {
+            _ScalePercentHigh = (int)Math.Ceiling( (double)100.0 / scaleDownEffects);
+            _ScalePercent = new string[_ScalePercentHigh+1];
+            int scalePercent = 100;
+            for (int i = 0; i < _ScalePercentHigh; i++)
+            {
+                _ScalePercent[i] = $"{{\\fscx{scalePercent}\\fscy{scalePercent}}}";
+                scalePercent -= scaleDownEffects;
+            }
+            _ScalePercent[_ScalePercentHigh] = "{\\fscx0\\fscy0}";
+        }
+        else
+        {
+            _ScalePercent = [""];
+            _ScalePercentHigh = 0;
+        }
+        */
 
         int totalFiles = 0;
         int totalCollisions = 0;
