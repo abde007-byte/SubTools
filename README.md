@@ -199,7 +199,8 @@ subtools merge shortlines [options]
 | `-g, --max-gap` | Maximum gap in seconds between subtitle entries to merge. |
 | `-c, --max-chars` | Maximum character count for merged subtitle entries. |
 | `-u, --unpunctuated` | Merge unpunctuated text. |
-| `-s, --strict-test` | Use stricter short-line merge rules. |
+| `-C, --test-comma` | If set short lines won't merge unless the first sentence ends with Comma, otherwise they will merge as long as the first sentence doesn't end with Period, Question Mark, Exclamation Mark, Semicolon, Ellipsis. |
+| `-M, --test-minuscule` | If set short lines won't merge unless the second sentence's first char is not a capital letter - with \"I and I'\" as an exception -. |
 | `-d, --make-dialogue` | Add `-` at the start of each merged line. |
 | `-N, --remove-line-breaks` | Remove line breaks from text lines. |
 

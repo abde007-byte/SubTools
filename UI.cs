@@ -224,9 +224,9 @@ public static class UI
                 Console.WriteLine("Regrouping:");
                 Restyler.Regroup( Config.Regroup_Ssa_Dialogue_Styles );
                 Console.WriteLine("Merging:");
-                Merger.Merge( 1, Config.Merge_Max_Gap, 0, false, false, false, false );
-                Merger.Merge( 2, Config.Merge_Max_Gap, 0, false, false, Config.Merge_Make_Dialogue, false );
-                Merger.Merge( 3, Config.Merge_Max_Gap, Config.Merge_Max_Chars, Config.Merge_Unpunctuated, Config.Merge_Strict_Test, Config.Merge_Make_Dialogue, Config.Merge_Remove_Line_Breaks );
+                Merger.Merge( 1, Config.Merge_Max_Gap, 0, false, false, false, false, false );
+                Merger.Merge( 2, Config.Merge_Max_Gap, 0, false, false, false, Config.Merge_Make_Dialogue, false );
+                Merger.Merge( 3, Config.Merge_Max_Gap, Config.Merge_Max_Chars, Config.Merge_Unpunctuated, Config.Merge_Test_Comma, Config.Merge_Test_Minuscule, Config.Merge_Make_Dialogue, Config.Merge_Remove_Line_Breaks );
                 Console.WriteLine("Recalculating:");
                 Recalculator.Recalculate( Config.Recalculate_Mode, Config.Recalculate_Overlap, Config.Recalculate_Shrink, Config.Recalculate_All,
                     Config.Recalculate_Chars_Per_Second, Config.Recalculate_Min_Duration, Config.Recalculate_Max_Duration, Config.Recalculate_Gap
@@ -307,27 +307,29 @@ public static class UI
         var optionMaxGap = new Option<double>("--max-gap", "-g") { Description = "Maximum Gap between subtitle entries to be merged.", DefaultValueFactory = _ => Config.Merge_Max_Gap };
         var optionMaxChars = new Option<int>("--max-chars", "-c") { Description = "Maximum number of characters of the merged entries.", DefaultValueFactory = _ => Config.Merge_Max_Chars };
         var optionUnpunctuated = new Option<bool>("--unpunctuated", "-u") { Description = "Merge unpunctuated text.", DefaultValueFactory = _ => Config.Merge_Unpunctuated };
-        var optionStrictTest = new Option<bool>("--strict-test", "-s") { Description = "If set short lines won't merge unless the first sentence ends with Comma and the second's first char is not uppercase - with \"I and I'\" as an exception -, otherwise they will merge as long as the first sentence doesn't end with Period, Question Mark, Exclamation Mark, Semicolon, Ellipsis.", DefaultValueFactory = _ => Config.Merge_Strict_Test };
+        var optionTestComma = new Option<bool>("--test-comma", "-C") { Description = "If set short lines won't merge unless the first sentence ends with Comma, otherwise they will merge as long as the first sentence doesn't end with Period, Question Mark, Exclamation Mark, Semicolon, Ellipsis.", DefaultValueFactory = _ => Config.Merge_Test_Comma };
+        var optionTestMinuscule = new Option<bool>("--test-minuscule", "-M") { Description = "If set short lines won't merge unless the second sentence's first char is not a capital letter - with \"I and I'\" as an exception -.", DefaultValueFactory = _ => Config.Merge_Test_Minuscule };
         var optionMakeDialogue = new Option<bool>("--make-dialogue", "-d") { Description = "Add \"-\" at the start of each line merged.", DefaultValueFactory = _ => Config.Merge_Make_Dialogue };
         var optionRemoveLineBreaks = new Option<bool>("--remove-line-breaks", "-N") { Description = "Remove line breaks from texts lines.", DefaultValueFactory = _ => Config.Merge_Remove_Line_Breaks};
         commandMerge.Options.Add(optionMaxGap);
         commandMerge.Options.Add(optionMaxChars);
         commandMerge.Options.Add(optionUnpunctuated);
-        commandMerge.Options.Add(optionStrictTest);
+        commandMerge.Options.Add(optionTestComma);
+        commandMerge.Options.Add(optionTestMinuscule);
         commandMerge.Options.Add(optionMakeDialogue);
         commandMerge.Options.Add(optionRemoveLineBreaks);
         commandMerge.SetAction(_ => {
             Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
-            Merger.Merge( 1, _.GetValue(optionMaxGap), 0, false, false, false, false );
-            Merger.Merge( 2, _.GetValue(optionMaxGap), 0, false, false, _.GetValue(optionMakeDialogue), false );
-            Merger.Merge( 3, _.GetValue(optionMaxGap), _.GetValue(optionMaxChars), _.GetValue(optionUnpunctuated), _.GetValue(optionStrictTest), _.GetValue(optionMakeDialogue), _.GetValue(optionRemoveLineBreaks) );
+            Merger.Merge( 1, _.GetValue(optionMaxGap), 0, false, false, false, false, false );
+            Merger.Merge( 2, _.GetValue(optionMaxGap), 0, false, false, false, _.GetValue(optionMakeDialogue), false );
+            Merger.Merge( 3, _.GetValue(optionMaxGap), _.GetValue(optionMaxChars), _.GetValue(optionUnpunctuated), _.GetValue(optionTestComma), _.GetValue(optionTestMinuscule), _.GetValue(optionMakeDialogue), _.GetValue(optionRemoveLineBreaks) );
         });
 
         var commandMergeSameText = new Command("sametext"){ Description = "Merge subtitle entries with the same text." };
         commandMergeSameText.Options.Add( optionMaxGap );
         commandMergeSameText.SetAction(_ => {
             Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
-            Merger.Merge( 1, _.GetValue(optionMaxGap), 0, false, false, false, false );
+            Merger.Merge( 1, _.GetValue(optionMaxGap), 0, false, false, false, false, false );
         });
         commandMerge.Subcommands.Add( commandMergeSameText );
 
@@ -336,7 +338,7 @@ public static class UI
         commandMergeSameTime.Options.Add(optionMakeDialogue);
         commandMergeSameTime.SetAction(_ => {
             Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
-            Merger.Merge( 2, _.GetValue(optionMaxGap), 0, false, false, _.GetValue(optionMakeDialogue), false );
+            Merger.Merge( 2, _.GetValue(optionMaxGap), 0, false, false, false, _.GetValue(optionMakeDialogue), false );
         });
         commandMerge.Subcommands.Add( commandMergeSameTime );
 
@@ -344,12 +346,13 @@ public static class UI
         commandMergeShortLines.Options.Add( optionMaxGap );
         commandMergeShortLines.Options.Add(optionMaxChars);
         commandMergeShortLines.Options.Add(optionUnpunctuated);
-        commandMergeShortLines.Options.Add(optionStrictTest);
+        commandMergeShortLines.Options.Add(optionTestComma);
+        commandMergeShortLines.Options.Add(optionTestMinuscule);
         commandMergeShortLines.Options.Add(optionMakeDialogue);
         commandMergeShortLines.Options.Add(optionRemoveLineBreaks);
         commandMergeShortLines.SetAction(_ => {
             Config.Miscellaneous_Verbose = _.GetValue(optionVerbose);
-            Merger.Merge( 3, _.GetValue(optionMaxGap), _.GetValue(optionMaxChars), _.GetValue(optionUnpunctuated), _.GetValue(optionStrictTest), _.GetValue(optionMakeDialogue), _.GetValue(optionRemoveLineBreaks) );
+            Merger.Merge( 3, _.GetValue(optionMaxGap), _.GetValue(optionMaxChars), _.GetValue(optionUnpunctuated), _.GetValue(optionTestComma), _.GetValue(optionTestMinuscule), _.GetValue(optionMakeDialogue), _.GetValue(optionRemoveLineBreaks) );
         });
         commandMerge.Subcommands.Add( commandMergeShortLines );
 

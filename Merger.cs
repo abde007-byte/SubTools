@@ -112,7 +112,7 @@ public static class Merger
     }
     //Merge short subtitle text lines for entries marked as dialog,
     //affected by dialogue tag and groupings.
-    public static int MergeShortLines( SubFile sf, int maxGap, int maxCharacters, bool unpunctuated, bool strictTest, bool makeDialogue, bool removeLineBreaks )
+    public static int MergeShortLines( SubFile sf, int maxGap, int maxCharacters, bool unpunctuated, bool testComma, bool testMinuscule, bool makeDialogue, bool removeLineBreaks )
     {
         int dialoguesMerged = 0;
         var toRemove = Common.GetEmptyToRemoveList( sf._dialogues.Count );
@@ -149,7 +149,7 @@ public static class Merger
                                 if( removeLineBreaks)
                                     bDialogue._textLines = RemoveLineBreaks( bDialogue._textLines );
 
-                                if( MergeShortLines( aDialogue._textLines, bDialogue._textLines, downG, maxCharacters, unpunctuated, strictTest, makeDialogue, out string mergedTextLines, out bool aEndCharCanContinue ) )
+                                if( MergeShortLines( aDialogue._textLines, bDialogue._textLines, downG, maxCharacters, unpunctuated, testComma, testMinuscule, makeDialogue, out string mergedTextLines, out bool aEndCharCanContinue ) )
                                 {
                                     aDialogue._end = PickLongestRuntime( aDialogue._end, bDialogue._end );
                                     aDialogue._textLines = mergedTextLines;
@@ -198,7 +198,7 @@ public static class Merger
                 inputChars[i] = ' ';//replace with space
         return new string(inputChars);
     }
-    private static bool MergeShortLines( string aTextLines, string bTextLines, int downGroup, int maxCharacters, bool unpunctuated, bool strictTest, bool makeDialogue, out string mergedTextLines, out bool AEndCharCanContinue )
+    private static bool MergeShortLines( string aTextLines, string bTextLines, int downGroup, int maxCharacters, bool unpunctuated, bool testComma, bool testMinuscule, bool makeDialogue, out string mergedTextLines, out bool AEndCharCanContinue )
     {
         //to skip group definers and find correct char positions:
         // first : 0 , last : ^1 , second : 1 , second last : ^2
@@ -218,24 +218,15 @@ public static class Merger
             bStartISpace = bTextLines.Length>1 && (bTextLines[..2]=="I " || bTextLines[..2]=="I'");//first and second
         }
         
-        bool AB_CanMerge;
-        if ( strictTest)
-        {
-            //STRICT TEST! - text 'A' last char is a comma
-            AEndCharCanContinue = IsCommaLike( aEnd );
-            //AND text 'B' first char is not uppercase, with "I " as an exception
-            AB_CanMerge = AEndCharCanContinue && ( ! char.IsUpper(bStart) || bStartISpace );
-        }
-        else
-        {
-            AEndCharCanContinue = NotPeriodLike( aEnd );
-            AB_CanMerge = AEndCharCanContinue;
-        }
+        //TEST Comma - 'A' text last char is a comma
+        AEndCharCanContinue = testComma? IsCommaLike( aEnd ) : NotPeriodLike( aEnd );
+        //TEST Minuscule - plus 'B' text first char is not uppercase, with "I " as an exception
+        bool BStartCanMerge = ! testMinuscule || ! char.IsUpper(bStart) || bStartISpace;
         
         if(
             (
             //check if texts can be merged, for properly punctuated text, or if it can allow unpunctuated is used
-                unpunctuated || AB_CanMerge 
+                unpunctuated || (AEndCharCanContinue && BStartCanMerge)
             ) && (
             //sum of strings length is no more than MaxCharacters
                 ( aTextLines.Length + bTextLines.Length ) <= maxCharacters
@@ -253,18 +244,27 @@ public static class Merger
     }
     private static string MergeTextLines( string aTextLines, string bTextLines, int downGroup, bool MakeDialogue, char JoinBy = '\n' )
     {
+        static string AddDash( string text )
+        {
+            if( string.IsNullOrEmpty(text) ) 
+                return text;
+            else if( text[0] == '-' )
+                return text;
+            else
+                return '-'+text;
+        }
         if( downGroup > 0)
         {
             //trim group deffiner, [ startpos .. endpos ] "endpos not included in output string! - ^1 is last char - "
             if( MakeDialogue )
-                return aTextLines[0]+'-'+aTextLines[1..^1] + '\n' + '-'+bTextLines[1..];
+                return aTextLines[0]+ AddDash(aTextLines[1..^1]) + '\n' + AddDash(bTextLines[1..]);
             else
                 return aTextLines[..^1] + JoinBy + bTextLines[1..];
         }
         else
         {
             if( MakeDialogue )
-                return '-'+aTextLines + '\n' + '-'+bTextLines; //subtitle edit uses "- " but i prefer "-" no extra space
+                return AddDash(aTextLines) + '\n' + AddDash(bTextLines); //subtitle edit uses "- " but i prefer "-" no extra space
             else
                 return aTextLines + JoinBy + bTextLines;
         }
@@ -296,7 +296,7 @@ public static class Merger
         //start time 'a' is always less or equal to 'b' 
         return (aEnd > bEnd)? aEnd : bEnd;
     }
-    public static void Merge( byte command, double maxGap, int maxCharacters, bool unpunctuated, bool strictTest, bool makeDialogue, bool removeLineBreaks )
+    public static void Merge( byte command, double maxGap, int maxCharacters, bool unpunctuated, bool testComma, bool testMinuscule, bool makeDialogue, bool removeLineBreaks )
     {
         if( FileLoader.SubFiles.Count == 0)
         {
@@ -320,7 +320,7 @@ public static class Merger
                 //Merge same time
                 2 => MergeSameTime( subFile, maxGapMS, makeDialogue ),
                 //Merge short lines
-                _ => MergeShortLines( subFile, maxGapMS, maxCharacters, unpunctuated, strictTest, makeDialogue, removeLineBreaks )
+                _ => MergeShortLines( subFile, maxGapMS, maxCharacters, unpunctuated, testComma, testMinuscule, makeDialogue, removeLineBreaks )
             };
             ConsoleHelper.Verbose($"\t\tdialogues merged: {DialoguesMerged}", "");
             totalDialoguesMerged += DialoguesMerged;

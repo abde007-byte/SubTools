@@ -24,7 +24,8 @@ public static class Config
     internal static int Merge_Max_Chars = 100;
     internal static bool Merge_Unpunctuated = false;
     internal static bool Merge_Make_Dialogue = false;
-    internal static bool Merge_Strict_Test = false;
+    internal static bool Merge_Test_Comma = false;
+    internal static bool Merge_Test_Minuscule = false;
     internal static bool Merge_Remove_Line_Breaks = true;
     /*************************************************************************/
     internal static RecalculateModeType Recalculate_Mode = RecalculateModeType.Extend;
@@ -60,7 +61,8 @@ public static class Config
         "Merge:Max Chars",
         "Merge:Unpunctuated",
         "Merge:Make Dialogue",
-        "Merge:Strict Test",
+        "Merge:Test Comma",
+        "Merge:Test Minuscule",
         "Merge:Remove Line Breaks",
 
         "Recalculate:Mode",
