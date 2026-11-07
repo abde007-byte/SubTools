@@ -36,10 +36,11 @@ public static class Merger
                             break;//break from 'y:j' loop
 
                         //test a and b IsSameText
-                        if ( IsSameText( aDialogue._textLines, bDialogue._textLines ) )
+                        if ( IsSameText( aDialogue._textLines, bDialogue._textLines, out string mergedText ) )
                         {
                             //pick the longest runtime
                             aDialogue._end = PickLongestRuntime( aDialogue._end, bDialogue._end );
+                            aDialogue._textLines = mergedText;
                             aChanged = true;
                             //add dialogue at index 'j', to be removed later!
                             toRemove[j] = true;
@@ -274,10 +275,34 @@ public static class Merger
                 return aTextLines + JoinBy + bTextLines;
         }
     }
-    private static bool IsSameText( string aTextLines, string bTextLines )
+    private static bool IsSameText( string aTextLines, string bTextLines, out string result )
     {
-        //exact copy of textlines, i don't need anything else!
-        return aTextLines == bTextLines;
+        if( aTextLines.Length > bTextLines.Length)
+        {
+            if( string.Equals( aTextLines.Substring( aTextLines.Length - bTextLines.Length, bTextLines.Length ), bTextLines, StringComparison.InvariantCultureIgnoreCase) )
+            {
+                result = aTextLines;
+                return true;
+            }
+        }else if( aTextLines.Length < bTextLines.Length)
+        {
+            if( string.Equals( aTextLines, bTextLines.Substring( 0, aTextLines.Length ), StringComparison.InvariantCultureIgnoreCase) )
+            {
+                result = bTextLines;
+                return true;
+            }
+        }
+        else 
+        {
+            if( string.Equals( aTextLines, bTextLines, StringComparison.InvariantCultureIgnoreCase) )
+            {
+                result = aTextLines;
+                return true;
+            }
+        }
+
+        result = string.Empty;
+        return false;
     }
     private static bool IsSimilarTimes( int maxGap, int a, int b )
     {

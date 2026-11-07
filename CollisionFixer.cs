@@ -228,7 +228,7 @@ public static class CollisionFixer
         return collisions;
     }
 
-    public static string ApplyForcedLineBreaks( string input, int lineSize )
+    public static string ApplyForcedLineBreaks( string input, int lineSize, bool looseLineSize = true )
     {
         if ( string.IsNullOrEmpty( input ) || lineSize <= 0 || input.Contains('\n') )
             return input;
@@ -239,20 +239,27 @@ public static class CollisionFixer
         int parts = (int)Math.Ceiling( (double)input.Length / lineSize );
         int approxLineSize = (int)Math.Ceiling( (double)input.Length / parts );
 
-        var textLines = new StringBuilder( input.Length + ( parts * 2 ) );
+        var textLines = new List<string>( parts );
         int start = 0;
 
         while ( start < input.Length )
         {
+            // If no whitespace was found, use the chunk boundary
             int breakIndex = input.Length;
+
+            //set Lines count equal calculated parts
+            if( looseLineSize && textLines.Count+1 == parts )
+            {
+                textLines.Add( input.Substring( start, input.Length - start ) );
+                break;
+            }
 
             int end = start + approxLineSize;
             if ( end < input.Length )
             {
-                breakIndex = int.MaxValue;
-
                 // Try forward first
-                for ( int i = end; i < input.Length; i++ )
+                var limit = Math.Min(start + lineSize, input.Length-1 );
+                for ( int i = end; i <= limit; i++ )
                 {
                     if ( char.IsWhiteSpace( input[i] ) )
                     {
@@ -260,9 +267,8 @@ public static class CollisionFixer
                         break;
                     }
                 }
-
                 // If the chunk is still too large, fall back to reverse scan
-                if ( breakIndex - start > lineSize )
+                if ( breakIndex > limit )
                 {
                     for ( int i = end - 1; i > start; i-- )
                     {
@@ -273,25 +279,19 @@ public static class CollisionFixer
                         }
                     }
                 }
-
-                // If no whitespace was found, use the chunk boundary
-                if ( breakIndex > input.Length )
-                    breakIndex = input.Length;
             }
 
             // Use the exact slice up to the break
-            if ( textLines.Length > 0 )
-                textLines.Append( "\\N" );
-            textLines.Append( input.Substring( start, breakIndex - start ) );//.Trim()
+            textLines.Add( input.Substring( start, breakIndex - start ) );
 
-            start = breakIndex;
-
-            // Remove the whitespace that caused the break
+            //set the new start pos
+            start = breakIndex+1;
+            //remove any additional whitespaces
             while ( start < input.Length && char.IsWhiteSpace( input[start] ) )
                 start++;
         }
 
-        return textLines.ToString();
+        return string.Join( "\\N", textLines );//using \N will add to the styling!
     }
 
     public static void CollisionFix( bool reverse, string topStyles, string topGroups, int scaleDownEffects, int lineSize )
