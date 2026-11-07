@@ -188,6 +188,7 @@ public static class Merger
     //public const string CommaChars = ",，、،";//usage: CommaChars.Contains(ch)
     private static bool IsCommaLike(char ch) => ch switch { ',' or '，' or '،' or '、' => true, _ => false };
     private static bool NotPeriodLike(char ch) => ch switch { '.' or '。' or '?' or '？' or '؟' or '!' or '！' or ';' or '；' or '؛' or ';' or '…' => false, _ => true };
+    private static bool IsQuoteLike(char ch) => ch switch { '\'' or '"' or '‘' or '’' or '“' or '”' or '«' or '»' or '「' or '」' or '『' or '』' or '《' or '》' or '〈' or '〉' => true, _ => false };
     
     internal static string RemoveLineBreaks( string input )
     {
@@ -209,12 +210,16 @@ public static class Merger
         {
             bStart = bTextLines[1];
             aEnd = aTextLines[^2];
+            if( IsQuoteLike(aEnd) )
+                aEnd = (aTextLines.Length > 2)?aTextLines[^3]:' ';
             bStartISpace = bTextLines.Length>2 && bTextLines[1..3]=="I ";//second and third
         }
         else
         {
             bStart = (bTextLines.Length > 0)?bTextLines[0]:' ';
             aEnd = (aTextLines.Length > 0)?aTextLines[^1]:' ';
+            if( IsQuoteLike(aEnd) )
+                aEnd = (aTextLines.Length > 1)?aTextLines[^2]:' ';
             bStartISpace = bTextLines.Length>1 && (bTextLines[..2]=="I " || bTextLines[..2]=="I'");//first and second
         }
         
