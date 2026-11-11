@@ -1,6 +1,5 @@
 bin/
 obj/
-.vs/
 *.user
 *.suo
 *.rsuser
@@ -8,4 +7,3 @@ obj/
 *.pdb
 *.7z
 *.zip
-SubTools.csproj
