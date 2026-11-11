@@ -26,7 +26,8 @@ public abstract class SubFile
     internal const int DefaultGroupValueForDialogue = 0;
     internal const string DefaultSSAStyle = "Default";//ssa empty style equals Default
     public virtual string DefaultExtension => "";
-    public string? FilePath {get => field??"NONAME"+DefaultExtension; set; }//NONAME should not happen!
+    private string? _FilePath;
+    public string? FilePath {get => _FilePath??"NONAME"+DefaultExtension; set => _FilePath = value; }//NONAME should not happen!
     public int DialoguesCount {get => _dialogues.Count;}
     protected void DialoguesInitialize()
     {

@@ -29,7 +29,7 @@ SubTools is designed for subtitle cleanup and repair workflows. It can break apa
 
 ## Requirements
 
-- .NET 10 SDK
+- .NET 11 SDK
 - Windows, macOS, or Linux
 
 ## Quick start
@@ -48,7 +48,7 @@ dotnet run -- --input "input.srt"
 
 ### Run from anywhere
 
-Add the generated executable from `bin\Release\net10.0` to your `PATH` variable, then use:
+Add the generated executable from `bin\Release\net11.0` to your `PATH` variable, then use:
 
 ```bash
 subtools -h
