@@ -12,6 +12,9 @@ public static class Separator
             var dialogue = sf._dialogues[i];
             if( Restyler.IsSSADialogueStyle( dialogue._style ) )
             {
+                //included in SSADialogueStyles
+                dialogue._group = SubFile.DefaultGroupValueForDialogue;
+
                 List<string> separatedTextLines;
                 if( Enclosed ){
                     //separate enclosed text
@@ -29,8 +32,6 @@ public static class Separator
                 //add unmodified textLines, in case TextLines is empty space separatedTextLines will be empty
                 if ( separatedTextLines.Count <= 1 )
                 {
-                    //included in SSADialogueStyles
-                    dialogue._group = SubFile.DefaultGroupValueForNoneDialogue;//*
                     newDialogues.Add( dialogue );
                 }
                 else
@@ -38,7 +39,7 @@ public static class Separator
                     foreach( string textLine in separatedTextLines )
                     {
                         newDialogues.Add( new DialogueData(
-                            SubFile.DefaultGroupValueForNoneDialogue,//* //in restyle/regroup this will be set!
+                            dialogue._group,
                             dialogue._start,
                             dialogue._end,
                             textLine,
@@ -136,12 +137,6 @@ public static class Separator
         if( FileLoader.SubFiles.Count == 0)
         {
             ConsoleHelper.Warning("need to load files!");
-            return;
-        }
-        
-        if( !Enclosed && !LineBreaks )
-        {
-            ConsoleHelper.Warning("nothing to do! choose an option!");
             return;
         }
 
